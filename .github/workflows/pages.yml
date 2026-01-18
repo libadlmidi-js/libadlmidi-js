@@ -1,7 +1,10 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
     branches: [main, master]
   workflow_dispatch:
 
@@ -9,6 +12,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read  # Required to download artifacts from other workflows
 
 concurrency:
   group: "pages"
@@ -17,6 +21,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Only deploy if CI succeeded (or manual trigger)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,11 +34,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build:types
+      # For workflow_run events, download artifacts from the triggering CI run
+      - name: Download dist from CI
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # For manual dispatch, we need to build ourselves
+      - name: Build (manual dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        run: npm run build
 
       - name: Prepare docs
         run: |
+          # Create docs/examples directory
+          mkdir -p docs/examples
+          
           # Copy dist files to docs
           cp -r dist docs/dist
           
