@@ -52,6 +52,9 @@ jobs:
       - name: Run browser tests
         run: npm run test:browser
 
+      - name: Run bundler smoke test
+        run: npm run test:bundler
+
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
@@ -59,4 +62,3 @@ jobs:
           name: playwright-report-${{ matrix.node-version }}
           path: playwright-report/
           retention-days: 30
-
