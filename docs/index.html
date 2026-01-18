@@ -4,8 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>libADLMIDI-JS - OPL3 FM Synthesis for the Web</title>
+    <title>libADLMIDI-JS - OPL3 Synthesis for the Web</title>
     <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999;
+            --accent: #4a9;
+            --accent-hover: #5ba;
+            --border: #444;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -15,122 +26,164 @@
             max-width: 900px;
             margin: 0 auto;
             padding: 40px 20px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #eee;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
         }
 
         h1 {
-            color: #00d9ff;
-            font-size: 2.5rem;
+            color: var(--text-primary);
+            font-size: 2.2rem;
+            font-weight: 500;
             margin-bottom: 0.5rem;
         }
 
+        h2 {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 1.3rem;
+            margin-top: 2.5rem;
+        }
+
         .subtitle {
-            color: #888;
-            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
             margin-bottom: 2rem;
+        }
+
+        p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--accent);
+        }
+
+        a:hover {
+            color: var(--accent-hover);
         }
 
         .demos {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin: 2rem 0;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            margin: 1.5rem 0;
         }
 
         .demo-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 24px;
-            transition: transform 0.2s, border-color 0.2s;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
         }
 
         .demo-card:hover {
-            transform: translateY(-4px);
-            border-color: #00d9ff;
+            border-color: var(--accent);
         }
 
         .demo-card h3 {
-            color: #00d9ff;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 1rem;
             margin-top: 0;
+            margin-bottom: 0.5rem;
         }
 
         .demo-card p {
-            color: #aaa;
-            line-height: 1.6;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
         }
 
-        .demo-card a {
+        .demo-card a.button {
             display: inline-block;
-            background: #00d9ff;
+            background: var(--accent);
             color: #000;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 8px 16px;
+            border-radius: 4px;
             text-decoration: none;
             font-weight: 500;
-            margin-top: 10px;
+            font-size: 0.85rem;
         }
 
-        .demo-card a:hover {
-            background: #00f7ff;
+        .demo-card a.button:hover {
+            background: var(--accent-hover);
+            color: #000;
         }
 
         .links {
             margin-top: 3rem;
             padding-top: 2rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid var(--border);
         }
 
         .links a {
-            color: #00d9ff;
             margin-right: 20px;
         }
 
         code {
-            background: rgba(0, 217, 255, 0.1);
+            background: var(--bg-tertiary);
             padding: 2px 6px;
-            border-radius: 4px;
+            border-radius: 3px;
             font-family: "SF Mono", Consolas, monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
         }
     </style>
 </head>
 
 <body>
-    <h1>🎹 libADLMIDI-JS</h1>
+    <h1>libADLMIDI-JS</h1>
     <p class="subtitle">OPL3 FM Synthesis for the Web via WebAssembly</p>
 
     <p>
-        A WebAssembly port of <a href="https://github.com/Wohlstand/libADLMIDI" style="color:#00d9ff">libADLMIDI</a>,
-        bringing authentic OPL3/FM synthesis to the browser. Play MIDI files, create real-time synthesizers,
-        and edit FM patches—all with the classic sound of DOS-era games.
+        A WebAssembly port of <a href="https://github.com/Wohlstand/libADLMIDI">libADLMIDI</a>,
+        enabling OPL3/FM synthesis in the browser. Play MIDI files, build real-time synthesizers,
+        and edit FM patches with the sound of DOS-era games.
     </p>
 
-    <h2>Interactive Demos</h2>
+    <h2>Examples</h2>
     <div class="demos">
         <div class="demo-card">
-            <h3>🎹 Keyboard</h3>
-            <p>Play notes with your mouse or keyboard. Switch banks and programs to explore different FM sounds.</p>
-            <a href="examples/keyboard.html">Try It →</a>
+            <h3>Keyboard</h3>
+            <p>Play notes with mouse or keyboard. Switch banks and programs to explore FM sounds.</p>
+            <a href="examples/keyboard.html" class="button">Open</a>
         </div>
 
         <div class="demo-card">
-            <h3>🎵 MIDI Player</h3>
-            <p>Load and play MIDI files with OPL3 synthesis. Includes classic game music samples.</p>
-            <a href="examples/player.html">Try It →</a>
+            <h3>MIDI Player</h3>
+            <p>Load and play MIDI files with OPL3 synthesis.</p>
+            <a href="examples/player.html" class="button">Open</a>
         </div>
 
         <div class="demo-card">
-            <h3>🎛️ Patch Editor</h3>
-            <p>Edit OPL3 FM instrument patches in real-time. Tweak operators, ADSR, and modulation.</p>
-            <a href="examples/patch-editor.html">Try It →</a>
+            <h3>Patch Editor</h3>
+            <p>Edit OPL3 FM instrument patches in real-time. Adjust operators, ADSR, and waveforms.</p>
+            <a href="examples/patch-editor.html" class="button">Open</a>
         </div>
 
         <div class="demo-card">
-            <h3>🎸 Web MIDI</h3>
+            <h3>Web MIDI</h3>
             <p>Connect a MIDI controller and use libADLMIDI-JS as a live instrument.</p>
-            <a href="examples/webmidi.html">Try It →</a>
+            <a href="examples/webmidi.html" class="button">Open</a>
+        </div>
+
+        <div class="demo-card">
+            <h3>MIDI to WAV</h3>
+            <p>Convert MIDI files to WAV audio offline.</p>
+            <a href="examples/midi-to-audio.html" class="button">Open</a>
         </div>
     </div>
 
