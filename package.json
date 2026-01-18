@@ -1,6 +1,10 @@
 {
   "name": "libadlmidi-js",
   "version": "1.0.0",
+  "libadlmidi": {
+    "version": "1.6.2",
+    "commit": "221a19d62bb643aac7ceb344712efd09dd88ea86"
+  },
   "description": "WebAssembly build of libADLMIDI - OPL3/FM synthesis for the browser",
   "main": "dist/libadlmidi.js",
   "type": "module",
@@ -59,7 +63,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "check": "npm run lint && npm run typecheck",
+    "check": "npm run lint && npm run typecheck && npm run sync-version -- --check",
+    "sync-version": "node scripts/sync-libadlmidi-version.js",
     "prepare": "command -v pre-commit >/dev/null && pre-commit install || echo 'pre-commit not found, run: pipx install pre-commit'"
   },
   "types": "dist/libadlmidi.d.ts",

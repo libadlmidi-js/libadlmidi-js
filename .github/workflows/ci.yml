@@ -26,6 +26,9 @@ jobs:
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
 
+      - name: Check libADLMIDI version sync
+        run: npm run sync-version -- --check
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
