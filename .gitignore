@@ -21,3 +21,8 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Bundler smoke test artifacts
+tests/bundler-smoke/node_modules/
+tests/bundler-smoke/dist/
+tests/bundler-smoke/package-lock.json

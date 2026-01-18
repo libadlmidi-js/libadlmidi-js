@@ -6,22 +6,39 @@
   "type": "module",
   "exports": {
     ".": "./dist/libadlmidi.js",
+    "./core": {
+      "import": "./src/core.js",
+      "types": "./dist/core.d.ts"
+    },
+    "./structs": {
+      "import": "./src/utils/struct.js",
+      "types": "./dist/utils/struct.d.ts"
+    },
     "./nuked": {
-      "processor": "./dist/libadlmidi.nuked.processor.js",
-      "wasm": "./dist/libadlmidi.nuked.core.wasm"
+      "import": "./src/profiles/nuked.js"
+    },
+    "./nuked/slim": {
+      "import": "./src/profiles/nuked.slim.js"
     },
     "./dosbox": {
-      "processor": "./dist/libadlmidi.dosbox.processor.js",
-      "wasm": "./dist/libadlmidi.dosbox.core.wasm"
+      "import": "./src/profiles/dosbox.js"
+    },
+    "./dosbox/slim": {
+      "import": "./src/profiles/dosbox.slim.js"
     },
     "./light": {
-      "processor": "./dist/libadlmidi.light.processor.js",
-      "wasm": "./dist/libadlmidi.light.core.wasm"
+      "import": "./src/profiles/light.js"
+    },
+    "./light/slim": {
+      "import": "./src/profiles/light.slim.js"
     },
     "./full": {
-      "processor": "./dist/libadlmidi.full.processor.js",
-      "wasm": "./dist/libadlmidi.full.core.wasm"
-    }
+      "import": "./src/profiles/full.js"
+    },
+    "./full/slim": {
+      "import": "./src/profiles/full.slim.js"
+    },
+    "./dist/*": "./dist/*"
   },
   "scripts": {
     "build:wasm": "bash build.sh all",
@@ -37,7 +54,8 @@
     "test": "npm run build:types && vitest run",
     "test:watch": "vitest",
     "test:browser": "playwright test",
-    "test:all": "npm test && npm run test:browser",
+    "test:bundler": "cd tests/bundler-smoke && npm install && npm test",
+    "test:all": "npm test && npm run test:browser && npm run test:bundler",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -58,7 +76,7 @@
   "license": "LGPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tgies/libadlmidi-js.git"
+    "url": "https://github.com/libadlmidi-js/libadlmidi-js.git"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

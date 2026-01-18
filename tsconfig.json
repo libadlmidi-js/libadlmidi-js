@@ -13,6 +13,8 @@
     },
     "include": [
         "src/libadlmidi.js",
-        "src/utils/**/*.js"
+        "src/core.js",
+        "src/utils/**/*.js",
+        "src/profiles/**/*.js"
     ]
 }
