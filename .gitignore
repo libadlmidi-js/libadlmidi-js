@@ -7,6 +7,7 @@ build-*/
 
 # Test artifacts
 test-results/
+playwright-report/
 
 # IDE
 .idea/
