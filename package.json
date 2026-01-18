@@ -59,6 +59,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "check": "npm run lint && npm run typecheck",
     "prepare": "command -v pre-commit >/dev/null && pre-commit install || echo 'pre-commit not found, run: pipx install pre-commit'"
   },
   "types": "dist/libadlmidi.d.ts",

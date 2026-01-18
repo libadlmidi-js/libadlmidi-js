@@ -228,12 +228,12 @@
             try {
                 setStatus('Loading WASM module...');
 
-                // Dynamically import the AdlMidi class
-                const { AdlMidi } = await import('../dist/libadlmidi.js');
+                // Import from the nuked profile wrapper (handles WASM loading)
+                const { AdlMidi } = await import('../src/profiles/nuked.js');
                 synth = new AdlMidi();
 
                 setStatus('Initializing AudioWorklet...');
-                await synth.init('../dist/libadlmidi.nuked.processor.js');
+                await synth.init();
 
                 // Expose for testing
                 window.synth = synth;

@@ -26,11 +26,15 @@
                 const samples = Math.floor((durationMs / 1000) * sampleRate);
                 const ctx = new OfflineAudioContext(2, samples, sampleRate);
 
+                // Fetch WASM binary (processor needs it for split builds)
+                const wasmResponse = await fetch('../../dist/libadlmidi.nuked.core.wasm');
+                const wasmBinary = await wasmResponse.arrayBuffer();
+
                 // Load the synth
                 await ctx.audioWorklet.addModule('../../dist/libadlmidi.nuked.processor.js');
 
                 const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
-                    processorOptions: { sampleRate }
+                    processorOptions: { sampleRate, wasmBinary }
                 });
                 node.connect(ctx.destination);
 
@@ -90,11 +94,15 @@
                 const samples = Math.floor((durationMs / 1000) * sampleRate);
                 const ctx = new OfflineAudioContext(2, samples, sampleRate);
 
+                // Fetch WASM binary (processor needs it for split builds)
+                const wasmResponse = await fetch('../../dist/libadlmidi.nuked.core.wasm');
+                const wasmBinary = await wasmResponse.arrayBuffer();
+
                 // Load the synth
                 await ctx.audioWorklet.addModule('../../dist/libadlmidi.nuked.processor.js');
 
                 const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
-                    processorOptions: { sampleRate }
+                    processorOptions: { sampleRate, wasmBinary }
                 });
                 node.connect(ctx.destination);
 
@@ -246,12 +254,18 @@
                 const samples = Math.floor((durationMs / 1000) * sampleRate);
                 const ctx = new OfflineAudioContext(2, samples, sampleRate);
 
-                // Load the profile-specific processor
+                // Load the profile-specific processor and WASM
                 const processorUrl = `../../dist/libadlmidi.${profile}.processor.js`;
+                const wasmUrl = `../../dist/libadlmidi.${profile}.browser.wasm`;
+
+                // Fetch WASM binary (processor can't fetch in AudioWorklet context)
+                const wasmResponse = await fetch(wasmUrl);
+                const wasmBinary = await wasmResponse.arrayBuffer();
+
                 await ctx.audioWorklet.addModule(processorUrl);
 
                 const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
-                    processorOptions: { sampleRate }
+                    processorOptions: { sampleRate, wasmBinary }
                 });
                 node.connect(ctx.destination);
 

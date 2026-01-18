@@ -10,8 +10,8 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * Discover profiles by scanning dist/ for WASM modules.
- * Pattern: libadlmidi.<profile>.js (bundled version)
+ * Discover profiles by scanning dist/ for browser-only split WASM modules.
+ * Pattern: libadlmidi.<profile>.browser.js (split version without embedded WASM)
  * This makes build.sh the single source of truth for profile definitions.
  */
 function discoverProfiles() {
@@ -23,15 +23,12 @@ function discoverProfiles() {
     const files = fs.readdirSync(distDir);
     const profiles = [];
 
-    // Match libadlmidi.<profile>.js but exclude .core.js and .processor.js
+    // Match libadlmidi.<profile>.browser.js for split browser builds
     for (const file of files) {
         if (file.startsWith('libadlmidi.') &&
-            file.endsWith('.js') &&
-            !file.includes('.core.') &&
-            !file.includes('.processor.') &&
-            file !== 'libadlmidi.js') {
-            // Extract profile name: libadlmidi.<profile>.js
-            const profile = file.slice('libadlmidi.'.length, -'.js'.length);
+            file.endsWith('.browser.js')) {
+            // Extract profile name: libadlmidi.<profile>.browser.js
+            const profile = file.slice('libadlmidi.'.length, -'.browser.js'.length);
             profiles.push(profile);
         }
     }
@@ -40,7 +37,7 @@ function discoverProfiles() {
 }
 
 async function bundleProfile(profile) {
-    const wasmModulePath = `dist/libadlmidi.${profile}.js`;
+    const wasmModulePath = `dist/libadlmidi.${profile}.browser.js`;
     const outputFile = `dist/libadlmidi.${profile}.processor.js`;
 
     if (!fs.existsSync(wasmModulePath)) {
@@ -59,8 +56,12 @@ async function bundleProfile(profile) {
             minify: false,
             sourcemap: false,
             alias: {
-                // Replace the placeholder import with the actual profile module
+                // Replace the placeholder import with browser-only split module (no embedded WASM)
                 'libadlmidi-wasm': path.resolve(wasmModulePath)
+            },
+            // Polyfill URL for AudioWorklet context (it exists in main thread but may not in worklet)
+            banner: {
+                js: `if (typeof URL === 'undefined') { globalThis.URL = class URL { constructor(url, base) { this.href = url; } }; }`
             }
         });
 

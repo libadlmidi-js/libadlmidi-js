@@ -55,10 +55,18 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
 
     async initWasm(processorOptions) {
         try {
-            // For split builds, use pre-fetched WASM binary from main thread
-            const moduleConfig = processorOptions?.wasmBinary
-                ? { wasmBinary: processorOptions.wasmBinary }
-                : undefined;
+            // For split builds, use instantiateWasm to bypass Emscripten's
+            // file-locating code which uses URL (not available in AudioWorklet)
+            let moduleConfig;
+            if (processorOptions?.wasmBinary) {
+                moduleConfig = {
+                    instantiateWasm: (imports, successCallback) => {
+                        WebAssembly.instantiate(processorOptions.wasmBinary, imports)
+                            .then(result => successCallback(result.instance));
+                        return {}; // indicates async instantiation
+                    }
+                };
+            }
             const Module = await createADLMIDI(moduleConfig);
             this.adl = Module;
 

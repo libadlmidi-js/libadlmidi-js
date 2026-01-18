@@ -155,14 +155,14 @@ export class AdlMidi {
 
         // For split builds, fetch the WASM binary from main thread
         // (AudioWorklet doesn't have fetch access)
+        // If wasmUrl not provided, derive it from processorUrl
         let wasmBinary = null;
-        if (wasmUrl) {
-            const response = await fetch(wasmUrl);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch WASM: ${response.status}`);
-            }
-            wasmBinary = await response.arrayBuffer();
+        const effectiveWasmUrl = wasmUrl || processorUrl.replace('.processor.js', '.core.wasm');
+        const response = await fetch(effectiveWasmUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch WASM: ${response.status}`);
         }
+        wasmBinary = await response.arrayBuffer();
 
         // Add the AudioWorklet module
         await this.ctx.audioWorklet.addModule(processorUrl);

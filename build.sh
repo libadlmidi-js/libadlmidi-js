@@ -88,7 +88,16 @@ build_profile() {
           -s EXPORTED_RUNTIME_METHODS=\"\$RUNTIME\" \
           libADLMIDI.a -o ../dist/libadlmidi.$OUTPUT_NAME.js
         
-        echo '>>> Linking SPLIT version...'
+        echo '>>> Linking SPLIT version (browser-only, for processor bundles)...'
+        emcc -Oz -flto -s WASM=1 -s SINGLE_FILE=0 \
+          -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s EXPORT_ES6=1 \
+          -s ENVIRONMENT=web,worker -s TEXTDECODER=1 \
+          -s EXPORT_NAME=createADLMIDI \
+          -s EXPORTED_FUNCTIONS=\"\$EXPORTS\" \
+          -s EXPORTED_RUNTIME_METHODS=\"\$RUNTIME\" \
+          libADLMIDI.a -o ../dist/libadlmidi.$OUTPUT_NAME.browser.js
+        
+        echo '>>> Linking SPLIT version (with Node support, for AdlMidiCore)...'
         emcc -Oz -flto -s WASM=1 -s SINGLE_FILE=0 \
           -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s EXPORT_ES6=1 \
           -s ENVIRONMENT=web,worker,node \
@@ -99,8 +108,9 @@ build_profile() {
       "
 
     echo ">>> Built $OUTPUT_NAME:"
-    echo "    Bundled: dist/libadlmidi.$OUTPUT_NAME.js"
-    echo "    Split:   dist/libadlmidi.$OUTPUT_NAME.core.js + .wasm"
+    echo "    Bundled:       dist/libadlmidi.$OUTPUT_NAME.js"
+    echo "    Split-Browser: dist/libadlmidi.$OUTPUT_NAME.browser.js + .wasm"
+    echo "    Split-Node:    dist/libadlmidi.$OUTPUT_NAME.core.js + .wasm"
 }
 
 # Create dist directory
