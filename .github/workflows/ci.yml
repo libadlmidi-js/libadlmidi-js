@@ -66,23 +66,26 @@ jobs:
         with:
           path: |
             build-*/
+            dist/
           key: wasm-build-${{ github.sha }}
           restore-keys: |
             wasm-build-${{ github.event.pull_request.base.sha }}
             wasm-build-
           lookup-only: true
 
-      # Only build if files changed OR cache doesn't exist
+      # Only build if files changed OR no cache exists
+      # Note: cache-hit is only true for exact key match; cache-matched-key is set for any match including restore-keys
       - name: Build WASM with Docker
-        if: needs.changes.outputs.wasm == 'true' || steps.cache-check.outputs.cache-hit != 'true'
+        if: needs.changes.outputs.wasm == 'true' || steps.cache-check.outputs.cache-matched-key == ''
         run: ./build.sh all
 
       - name: Cache WASM build
-        if: needs.changes.outputs.wasm == 'true' || steps.cache-check.outputs.cache-hit != 'true'
+        if: needs.changes.outputs.wasm == 'true' || steps.cache-check.outputs.cache-matched-key == ''
         uses: actions/cache/save@v4
         with:
           path: |
             build-*/
+            dist/
           key: wasm-build-${{ github.sha }}
 
   # Always run JS build, using WASM from wasm-build job
@@ -107,6 +110,7 @@ jobs:
         with:
           path: |
             build-*/
+            dist/
           key: wasm-build-${{ github.sha }}
           restore-keys: |
             wasm-build-
