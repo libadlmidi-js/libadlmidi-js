@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>libADLMIDI-JS Test Harness</title>
+    <script type="module">
+        // Expose test utilities to window for Playwright access
+        import { AdlMidi } from '../../dist/libadlmidi.js';
+
+        window.testUtils = {
+            AdlMidi,
+
+            /**
+             * Generate audio samples and return hash + RMS
+             * @param {Object} options
+             * @param {number} options.durationMs - Duration in milliseconds
+             * @param {number} [options.note=60] - MIDI note to play
+             * @param {number} [options.bank=72] - Bank number
+             * @returns {Promise<{hash: string, rms: number, samples: Float32Array}>}
+             */
+            async generateAudio(options) {
+                const { durationMs = 1000, note = 60, bank = 72 } = options;
+
+                // Use OfflineAudioContext for deterministic output
+                const sampleRate = 44100;
+                const samples = Math.floor((durationMs / 1000) * sampleRate);
+                const ctx = new OfflineAudioContext(2, samples, sampleRate);
+
+                // Load the synth
+                await ctx.audioWorklet.addModule('../../dist/libadlmidi.nuked.processor.js');
+
+                const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
+                    processorOptions: { sampleRate }
+                });
+                node.connect(ctx.destination);
+
+                // Wait for ready
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Timeout')), 5000);
+                    node.port.onmessage = (e) => {
+                        if (e.data.type === 'ready') {
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    };
+                });
+
+                // Set bank and play note
+                node.port.postMessage({ type: 'setBank', bank });
+                await new Promise(r => setTimeout(r, 100));
+
+                node.port.postMessage({ type: 'noteOn', channel: 0, note, velocity: 100 });
+
+                // Render
+                const buffer = await ctx.startRendering();
+                const left = buffer.getChannelData(0);
+
+                // Calculate RMS
+                let sum = 0;
+                for (let i = 0; i < left.length; i++) {
+                    sum += left[i] * left[i];
+                }
+                const rms = Math.sqrt(sum / left.length);
+
+                // Simple hash of samples (for deterministic comparison)
+                const hash = await this.hashSamples(left);
+
+                return { hash, rms, samples: left };
+            },
+
+            /**
+             * Hash audio samples for comparison
+             */
+            async hashSamples(samples) {
+                // Convert to bytes
+                const bytes = new Uint8Array(samples.buffer);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            },
+
+            /**
+             * Load and play MIDI/IMF file, return audio hash
+             * @param {string} url - URL to the file
+             * @param {number} durationMs - Duration to render in ms
+             * @returns {Promise<{hash: string, rms: number}>}
+             */
+            async playMIDI(url, durationMs = 2000) {
+                const sampleRate = 44100;
+                const samples = Math.floor((durationMs / 1000) * sampleRate);
+                const ctx = new OfflineAudioContext(2, samples, sampleRate);
+
+                // Load the synth
+                await ctx.audioWorklet.addModule('../../dist/libadlmidi.nuked.processor.js');
+
+                const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
+                    processorOptions: { sampleRate }
+                });
+                node.connect(ctx.destination);
+
+                // Wait for ready
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Synth timeout')), 10000);
+                    node.port.onmessage = (e) => {
+                        if (e.data.type === 'ready') {
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    };
+                });
+
+                // Fetch and load the MIDI file
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+                const arrayBuffer = await response.arrayBuffer();
+
+                // Load MIDI and wait for it to be ready
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('MIDI load timeout')), 10000);
+                    const handler = (e) => {
+                        if (e.data.type === 'midiLoaded') {
+                            node.port.removeEventListener('message', handler);
+                            clearTimeout(timeout);
+                            if (e.data.success) {
+                                resolve();
+                            } else {
+                                reject(new Error(e.data.error || 'Failed to load MIDI'));
+                            }
+                        }
+                    };
+                    node.port.addEventListener('message', handler);
+                    node.port.postMessage({ type: 'loadMidi', data: arrayBuffer });
+                });
+
+                // Start playback
+                node.port.postMessage({ type: 'play' });
+
+                // Render
+                const buffer = await ctx.startRendering();
+                const left = buffer.getChannelData(0);
+
+                // Calculate RMS
+                let sum = 0;
+                for (let i = 0; i < left.length; i++) {
+                    sum += left[i] * left[i];
+                }
+                const rms = Math.sqrt(sum / left.length);
+
+                // Hash
+                const hash = await this.hashSamples(left);
+
+                return { hash, rms };
+            },
+
+            /**
+             * Play IMF file - same as MIDI but different file format
+             */
+            async playIMF(url, durationMs = 2000) {
+                // IMF files use the same loadMidi path
+                return this.playMIDI(url, durationMs);
+            },
+
+            /**
+             * Test split build mode - load WASM separately and pass via processorOptions
+             * This verifies that the wasmBinary parameter works correctly
+             * @param {Object} options
+             * @param {number} options.durationMs - Duration in milliseconds
+             * @param {number} [options.note=60] - MIDI note to play
+             * @param {number} [options.bank=72] - Bank number
+             * @returns {Promise<{hash: string, rms: number}>}
+             */
+            async generateAudioSplitBuild(options) {
+                const { durationMs = 1000, note = 60, bank = 72 } = options;
+
+                const sampleRate = 44100;
+                const samples = Math.floor((durationMs / 1000) * sampleRate);
+                const ctx = new OfflineAudioContext(2, samples, sampleRate);
+
+                // Split build: fetch WASM binary separately first
+                const wasmResponse = await fetch('../../dist/libadlmidi.nuked.core.wasm');
+                if (!wasmResponse.ok) throw new Error(`Failed to fetch WASM: ${wasmResponse.status}`);
+                const wasmBinary = await wasmResponse.arrayBuffer();
+
+                // Load the "core" JS (not the bundled processor with embedded WASM)
+                await ctx.audioWorklet.addModule('../../dist/libadlmidi.nuked.processor.js');
+
+                // Create node with wasmBinary in processorOptions (the split build pattern)
+                const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
+                    processorOptions: {
+                        sampleRate,
+                        wasmBinary  // This is the key - pass pre-fetched WASM
+                    }
+                });
+                node.connect(ctx.destination);
+
+                // Wait for ready
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Timeout waiting for split build init')), 5000);
+                    node.port.onmessage = (e) => {
+                        if (e.data.type === 'ready') {
+                            clearTimeout(timeout);
+                            resolve();
+                        } else if (e.data.type === 'error') {
+                            clearTimeout(timeout);
+                            reject(new Error(e.data.message));
+                        }
+                    };
+                });
+
+                // Set bank and play note
+                node.port.postMessage({ type: 'setBank', bank });
+                await new Promise(r => setTimeout(r, 100));
+
+                node.port.postMessage({ type: 'noteOn', channel: 0, note, velocity: 100 });
+
+                // Render
+                const buffer = await ctx.startRendering();
+                const left = buffer.getChannelData(0);
+
+                // Calculate RMS
+                let sum = 0;
+                for (let i = 0; i < left.length; i++) {
+                    sum += left[i] * left[i];
+                }
+                const rms = Math.sqrt(sum / left.length);
+
+                // Hash
+                const hash = await this.hashSamples(left);
+
+                return { hash, rms };
+            }
+        };
+
+        console.log('Test harness ready');
+        window.testReady = true;
+    </script>
+</head>
+
+<body>
+    <h1>libADLMIDI-JS Test Harness</h1>
+    <p>This page is used by Playwright for browser-based testing.</p>
+    <div id="status">Loading...</div>
+    <script>
+        window.addEventListener('load', () => {
+            document.getElementById('status').textContent = 'Ready';
+        });
+    </script>
+</body>
+
+</html>

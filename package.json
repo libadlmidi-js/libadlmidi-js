@@ -1,0 +1,79 @@
+{
+  "name": "libadlmidi-js",
+  "version": "1.0.0",
+  "description": "WebAssembly build of libADLMIDI - OPL3/FM synthesis for the browser",
+  "main": "dist/libadlmidi.js",
+  "type": "module",
+  "exports": {
+    ".": "./dist/libadlmidi.js",
+    "./nuked": {
+      "processor": "./dist/libadlmidi.nuked.processor.js",
+      "wasm": "./dist/libadlmidi.nuked.core.wasm"
+    },
+    "./dosbox": {
+      "processor": "./dist/libadlmidi.dosbox.processor.js",
+      "wasm": "./dist/libadlmidi.dosbox.core.wasm"
+    },
+    "./light": {
+      "processor": "./dist/libadlmidi.light.processor.js",
+      "wasm": "./dist/libadlmidi.light.core.wasm"
+    },
+    "./full": {
+      "processor": "./dist/libadlmidi.full.processor.js",
+      "wasm": "./dist/libadlmidi.full.core.wasm"
+    }
+  },
+  "scripts": {
+    "build:wasm": "bash build.sh all",
+    "build:wasm:nuked": "bash build.sh nuked",
+    "build:wasm:dosbox": "bash build.sh dosbox",
+    "build:wasm:light": "bash build.sh light",
+    "build:wasm:full": "bash build.sh full",
+    "build:js": "node bundle.js",
+    "build:types": "tsc",
+    "build:banks": "node scripts/copy-banks.js",
+    "build": "npm run build:wasm && npm run build:js && npm run build:types && npm run build:banks",
+    "clean": "rm -rf build-* dist/*.js dist/*.wasm dist/*.d.ts dist/*.map dist/fm_banks",
+    "test": "npm run build:types && vitest run",
+    "test:watch": "vitest",
+    "test:browser": "playwright test",
+    "test:all": "npm test && npm run test:browser",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepare": "command -v pre-commit >/dev/null && pre-commit install || echo 'pre-commit not found, run: pipx install pre-commit'"
+  },
+  "types": "dist/libadlmidi.d.ts",
+  "keywords": [
+    "midi",
+    "opl3",
+    "fm-synthesis",
+    "adlib",
+    "audio",
+    "webassembly",
+    "wasm",
+    "audioworklet"
+  ],
+  "author": "Tony Gies <tgies@tgies.net>",
+  "license": "LGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tgies/libadlmidi-js.git"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^25.0.3",
+    "esbuild": "^0.27.2",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0",
+    "playwright": "^1.57.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "README.md"
+  ]
+}

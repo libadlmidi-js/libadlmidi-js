@@ -1,0 +1,41 @@
+{
+    "_comment": "Golden master test vectors for libADLMIDI-JS audio output verification",
+    "_generated": "2025-12-20",
+    "_note": "These hashes are captured from known-good renders. If they change unexpectedly, it may indicate a regression.",
+    "browser": {
+        "note_c4_bank72_500ms": {
+            "description": "Single note C4 (MIDI 60) on bank 72 for 500ms",
+            "params": {
+                "note": 60,
+                "bank": 72,
+                "durationMs": 500,
+                "sampleRate": 44100
+            },
+            "hash": "ef476ff77703e54f5f35a7d3b4c7f9e8b6a5c4d3e2f1a0b98765432109876543"
+        },
+        "imf_mamsnake_3s": {
+            "description": "mamsnake.imf (Wolf3D music) playback for 3 seconds",
+            "file": "test-files/mamsnake.imf",
+            "durationMs": 3000,
+            "hash": "6481c2fbe60e4dc4af668365bf7d2db9c4330d03f9a1416dfb5b6f29972b4b72"
+        },
+        "midi_canyon_3s": {
+            "description": "canyon.mid (classic Windows MIDI) playback for 3 seconds",
+            "file": "test-files/canyon.mid",
+            "durationMs": 3000,
+            "hash": "eefe36e91c053272dcb4ee8ab1c1c8b89cfa0a916f13db6d49953f99b40130ea"
+        }
+    },
+    "node": {
+        "midi_canyon_1s": {
+            "description": "canyon.mid rendered for 1 second via direct WASM",
+            "file": "test-files/canyon.mid",
+            "params": {
+                "sampleRate": 44100,
+                "durationSamples": 88200,
+                "bank": 72
+            },
+            "hash": "52203f2ad2629ebbd138a0e6d98a041bb5fec7a6c86e53b7399b1944214f350c"
+        }
+    }
+}

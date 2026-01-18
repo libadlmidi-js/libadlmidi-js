@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>libADLMIDI-JS Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+
+        h1 {
+            color: #00d9ff;
+        }
+
+        .keyboard {
+            display: flex;
+            gap: 4px;
+            margin: 20px 0;
+        }
+
+        .key {
+            width: 40px;
+            height: 120px;
+            background: linear-gradient(to bottom, #fff 0%, #e8e8e8 100%);
+            border: 1px solid #333;
+            border-radius: 0 0 4px 4px;
+            cursor: pointer;
+            color: #333;
+            font-size: 12px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 8px;
+            transition: background 0.1s;
+        }
+
+        .key:active,
+        .key.active {
+            background: linear-gradient(to bottom, #00d9ff 0%, #00a8cc 100%);
+        }
+
+        .key.black {
+            width: 30px;
+            height: 80px;
+            background: linear-gradient(to bottom, #333 0%, #111 100%);
+            margin: 0 -15px;
+            z-index: 1;
+            color: #fff;
+        }
+
+        .key.black:active,
+        .key.black.active {
+            background: linear-gradient(to bottom, #0088aa 0%, #005566 100%);
+        }
+
+        button {
+            background: #00d9ff;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px 10px 0;
+        }
+
+        button:hover {
+            background: #00f7ff;
+        }
+
+        button:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        #status {
+            padding: 10px;
+            margin: 20px 0;
+            background: #2a2a4e;
+            border-radius: 8px;
+        }
+
+        select {
+            background: #2a2a4e;
+            color: #eee;
+            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎹 libADLMIDI-JS Test</h1>
+    <p>OPL3 FM Synthesis in the browser via WebAssembly</p>
+
+    <div id="status">Status: Not initialized</div>
+
+    <button id="initBtn">Initialize Synth</button>
+    <button id="panicBtn" disabled>Panic (Stop All)</button>
+
+    <div>
+        <label>Bank:
+            <select id="bankSelect" disabled>
+                <option value="0">Bank 0 - AIL (Star Control 3)</option>
+                <option value="1">Bank 1 - Bisqwit</option>
+                <option value="5">Bank 5 - Apogee IMF 90</option>
+                <option value="72" selected>Bank 72 - TMB (Duke 3D)</option>
+            </select>
+        </label>
+        <label>Channel:
+            <select id="channelSelect" disabled>
+                <option value="0">Ch 0</option>
+                <option value="1">Ch 1</option>
+                <option value="9">Ch 9 (Drums)</option>
+            </select>
+        </label>
+        <label>Program:
+            <select id="programSelect" disabled>
+                <option value="0">0 - Piano</option>
+                <option value="24">24 - Acoustic Guitar</option>
+                <option value="33">33 - Electric Bass</option>
+                <option value="56">56 - Trumpet</option>
+                <option value="80">80 - Lead Square</option>
+            </select>
+        </label>
+    </div>
+
+    <h3>Piano Keyboard (click or use keys Z-M, A-K)</h3>
+    <div class="keyboard" id="keyboard"></div>
+
+    <script type="module">
+        // Note: This test uses the raw WASM glue, not the bundled processor
+        // because AudioWorklet bundling is complex
+
+        let synth = null;
+        let currentChannel = 0;
+
+        const notes = [
+            { note: 48, key: 'z', label: 'C3' },
+            { note: 49, key: 's', label: 'C#', black: true },
+            { note: 50, key: 'x', label: 'D3' },
+            { note: 51, key: 'd', label: 'D#', black: true },
+            { note: 52, key: 'c', label: 'E3' },
+            { note: 53, key: 'v', label: 'F3' },
+            { note: 54, key: 'g', label: 'F#', black: true },
+            { note: 55, key: 'b', label: 'G3' },
+            { note: 56, key: 'h', label: 'G#', black: true },
+            { note: 57, key: 'n', label: 'A3' },
+            { note: 58, key: 'j', label: 'A#', black: true },
+            { note: 59, key: 'm', label: 'B3' },
+            { note: 60, key: 'q', label: 'C4' },
+            { note: 61, key: '2', label: 'C#', black: true },
+            { note: 62, key: 'w', label: 'D4' },
+            { note: 63, key: '3', label: 'D#', black: true },
+            { note: 64, key: 'e', label: 'E4' },
+            { note: 65, key: 'r', label: 'F4' },
+            { note: 66, key: '5', label: 'F#', black: true },
+            { note: 67, key: 't', label: 'G4' },
+            { note: 68, key: '6', label: 'G#', black: true },
+            { note: 69, key: 'y', label: 'A4' },
+            { note: 70, key: '7', label: 'A#', black: true },
+            { note: 71, key: 'u', label: 'B4' },
+        ];
+
+        const keyboard = document.getElementById('keyboard');
+        const keyMap = new Map();
+
+        // Build keyboard UI
+        notes.forEach(({ note, key, label, black }) => {
+            const keyEl = document.createElement('div');
+            keyEl.className = 'key' + (black ? ' black' : '');
+            keyEl.textContent = label;
+            keyEl.dataset.note = note;
+            keyEl.dataset.key = key;
+            keyMap.set(key, keyEl);
+
+            keyEl.addEventListener('mousedown', () => playNote(note, true, keyEl));
+            keyEl.addEventListener('mouseup', () => playNote(note, false, keyEl));
+            keyEl.addEventListener('mouseleave', () => playNote(note, false, keyEl));
+
+            keyboard.appendChild(keyEl);
+        });
+
+        function playNote(note, on, keyEl) {
+            if (!synth) return;
+            if (on) {
+                synth.noteOn(currentChannel, note, 100);
+                keyEl?.classList.add('active');
+            } else {
+                synth.noteOff(currentChannel, note);
+                keyEl?.classList.remove('active');
+            }
+        }
+
+        // Keyboard input
+        document.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            const keyEl = keyMap.get(e.key.toLowerCase());
+            if (keyEl) {
+                playNote(parseInt(keyEl.dataset.note), true, keyEl);
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const keyEl = keyMap.get(e.key.toLowerCase());
+            if (keyEl) {
+                playNote(parseInt(keyEl.dataset.note), false, keyEl);
+            }
+        });
+
+        // Status update
+        function setStatus(msg) {
+            document.getElementById('status').textContent = 'Status: ' + msg;
+        }
+
+        // Initialize button
+        document.getElementById('initBtn').addEventListener('click', async () => {
+            try {
+                setStatus('Loading WASM module...');
+
+                // Dynamically import the AdlMidi class
+                const { AdlMidi } = await import('../dist/libadlmidi.js');
+                synth = new AdlMidi();
+
+                setStatus('Initializing AudioWorklet...');
+                await synth.init('../dist/libadlmidi.nuked.processor.js');
+
+                setStatus('Ready! Click keys or use keyboard (Z-M, Q-U)');
+
+                document.getElementById('initBtn').disabled = true;
+                document.getElementById('panicBtn').disabled = false;
+                document.getElementById('bankSelect').disabled = false;
+                document.getElementById('channelSelect').disabled = false;
+                document.getElementById('programSelect').disabled = false;
+
+            } catch (error) {
+                setStatus('Error: ' + error.message);
+                console.error(error);
+            }
+        });
+
+        // Panic button
+        document.getElementById('panicBtn').addEventListener('click', () => {
+            if (synth) {
+                synth.panic();
+                setStatus('Panic - all notes stopped');
+            }
+        });
+
+        // Bank selection
+        document.getElementById('bankSelect').addEventListener('change', async (e) => {
+            if (synth) {
+                try {
+                    await synth.setBank(parseInt(e.target.value));
+                    setStatus('Bank changed to ' + e.target.value);
+                } catch (error) {
+                    setStatus('Error setting bank: ' + error.message);
+                }
+            }
+        });
+
+        // Channel selection
+        document.getElementById('channelSelect').addEventListener('change', (e) => {
+            currentChannel = parseInt(e.target.value);
+            setStatus('Channel: ' + currentChannel);
+        });
+
+        // Program change
+        document.getElementById('programSelect').addEventListener('change', (e) => {
+            if (synth) {
+                synth.programChange(currentChannel, parseInt(e.target.value));
+                setStatus('Program changed to ' + e.target.value);
+            }
+        });
+    </script>
+</body>
+
+</html>
