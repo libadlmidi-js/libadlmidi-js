@@ -17,6 +17,8 @@ import {
     decodeOperator,
     encodeOperator,
     defaultOperator,
+    decodeInstrument,
+    encodeInstrument,
 } from './utils/struct.js';
 
 const SAMPLE_RATE = 44100;
@@ -142,118 +144,18 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
      * Read ADL_Instrument from WASM memory and decode to JS object
      */
     readInstrumentFromMemory(ptr) {
-        const heap = this.adl.HEAPU8;
-        const view = new DataView(heap.buffer, ptr, AdlMidiProcessor.SIZEOF_ADL_INSTRUMENT);
-
-        let offset = 0;
-
-        // int version (4 bytes)
-        const version = view.getInt32(offset, true); offset += 4;
-
-        // int16_t note_offset1, note_offset2 (2 bytes each)
-        const noteOffset1 = view.getInt16(offset, true); offset += 2;
-        const noteOffset2 = view.getInt16(offset, true); offset += 2;
-
-        // int8_t midi_velocity_offset, second_voice_detune (1 byte each)
-        const velocityOffset = view.getInt8(offset); offset += 1;
-        const secondVoiceDetune = view.getInt8(offset); offset += 1;
-
-        // uint8_t percussion_key_number, inst_flags, fb_conn1, fb_conn2
-        const percussionKey = heap[ptr + offset]; offset += 1;
-        const instFlags = heap[ptr + offset]; offset += 1;
-        const fbConn1 = heap[ptr + offset]; offset += 1;
-        const fbConn2 = heap[ptr + offset]; offset += 1;
-
-        // ADL_Operator operators[4] - 5 bytes each, but may have padding
-        // Offset should be at 14 now, operators start after potential padding
-        offset = 14; // Adjusted for structure alignment
-
-        const operators = [];
-        for (let i = 0; i < 4; i++) {
-            const opBytes = heap.slice(ptr + offset, ptr + offset + 5);
-            operators.push(this.decodeOperator(opBytes));
-            offset += 5;
-        }
-
-        // After 4 operators (20 bytes), we're at offset 34
-        // uint16_t delay_on_ms, delay_off_ms
-        offset = 34;
-        const delayOnMs = view.getUint16(offset, true); offset += 2;
-        const delayOffMs = view.getUint16(offset, true);
-
-        return {
-            version,
-            noteOffset1,
-            noteOffset2,
-            velocityOffset,
-            secondVoiceDetune,
-            percussionKey,
-
-            // Decode flags
-            is4op: !!(instFlags & 0x01),
-            isPseudo4op: !!(instFlags & 0x02),
-            isBlank: !!(instFlags & 0x04),
-            rhythmMode: (instFlags >> 3) & 0x07,
-
-            // Decode feedback/connection
-            feedback1: (fbConn1 >> 1) & 0x07,
-            connection1: fbConn1 & 0x01,
-            feedback2: (fbConn2 >> 1) & 0x07,
-            connection2: fbConn2 & 0x01,
-
-            operators,
-            delayOnMs,
-            delayOffMs
-        };
+        // Copy bytes from WASM heap and delegate to shared decoder
+        const bytes = this.adl.HEAPU8.slice(ptr, ptr + SIZEOF_ADL_INSTRUMENT);
+        return decodeInstrument(bytes);
     }
 
     /**
      * Write JS instrument object to WASM memory
      */
     writeInstrumentToMemory(ptr, inst) {
-        const heap = this.adl.HEAPU8;
-        const view = new DataView(heap.buffer, ptr, AdlMidiProcessor.SIZEOF_ADL_INSTRUMENT);
-
-        let offset = 0;
-
-        // int version
-        view.setInt32(offset, inst.version || 0, true); offset += 4;
-
-        // int16_t note_offset1, note_offset2
-        view.setInt16(offset, inst.noteOffset1 || 0, true); offset += 2;
-        view.setInt16(offset, inst.noteOffset2 || 0, true); offset += 2;
-
-        // int8_t midi_velocity_offset, second_voice_detune
-        view.setInt8(offset, inst.velocityOffset || 0); offset += 1;
-        view.setInt8(offset, inst.secondVoiceDetune || 0); offset += 1;
-
-        // uint8_t percussion_key_number
-        heap[ptr + offset] = inst.percussionKey || 0; offset += 1;
-
-        // uint8_t inst_flags
-        let flags = 0;
-        if (inst.is4op) flags |= 0x01;
-        if (inst.isPseudo4op) flags |= 0x02;
-        if (inst.isBlank) flags |= 0x04;
-        flags |= ((inst.rhythmMode || 0) & 0x07) << 3;
-        heap[ptr + offset] = flags; offset += 1;
-
-        // uint8_t fb_conn1, fb_conn2
-        heap[ptr + offset] = ((inst.feedback1 & 0x07) << 1) | (inst.connection1 & 0x01); offset += 1;
-        heap[ptr + offset] = ((inst.feedback2 & 0x07) << 1) | (inst.connection2 & 0x01); offset += 1;
-
-        // ADL_Operator operators[4]
-        offset = 14;
-        for (let i = 0; i < 4; i++) {
-            const opBytes = this.encodeOperator(inst.operators[i] || this.defaultOperator());
-            heap.set(opBytes, ptr + offset);
-            offset += 5;
-        }
-
-        // uint16_t delay_on_ms, delay_off_ms
-        offset = 34;
-        view.setUint16(offset, inst.delayOnMs || 0, true); offset += 2;
-        view.setUint16(offset, inst.delayOffMs || 0, true);
+        // Encode to bytes and copy to WASM heap
+        const bytes = encodeInstrument(inst);
+        this.adl.HEAPU8.set(bytes, ptr);
     }
 
     /**
