@@ -26,3 +26,6 @@ npm-debug.log*
 tests/bundler-smoke/node_modules/
 tests/bundler-smoke/dist/
 tests/bundler-smoke/package-lock.json
+
+# Local workflows
+.agent/
