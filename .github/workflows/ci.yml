@@ -7,6 +7,23 @@ on:
     branches: [main, master]
 
 jobs:
+  # Detect which files changed to determine if WASM rebuild is needed
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      wasm: ${{ steps.filter.outputs.wasm }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            wasm:
+              - 'libADLMIDI/**'
+              - 'build.sh'
+              - 'scripts/build-*.js'
+              - '.gitmodules'
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -31,7 +48,10 @@ jobs:
       - name: Check libADLMIDI version sync
         run: npm run sync-version -- --check
 
-  build:
+  # Only build WASM when C/C++ files or build scripts change
+  wasm-build:
+    needs: changes
+    if: needs.changes.outputs.wasm == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -42,11 +62,75 @@ jobs:
       - name: Build WASM with Docker
         run: ./build.sh all
 
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-build
+          path: |
+            build-*/
+          retention-days: 7
+
+  # Always run JS build, using either fresh WASM or cached from previous run
+  js-build:
+    needs: [changes, wasm-build]
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # If WASM was rebuilt, use fresh artifacts
+      - name: Download fresh WASM build
+        if: needs.changes.outputs.wasm == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-build
+
+      # If WASM wasn't rebuilt, restore from cache
+      - name: Restore cached WASM build
+        if: needs.changes.outputs.wasm != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build-*/
+          key: wasm-build-${{ github.sha }}
+          restore-keys: |
+            wasm-build-${{ github.event.pull_request.base.sha }}
+            wasm-build-
+        
+      # If cache miss and no fresh build, fail with helpful message
+      - name: Verify WASM files exist
+        run: |
+          if [ ! -d "build-full" ]; then
+            echo "❌ No WASM build found (neither fresh nor cached)"
+            echo "This can happen on the first CI run or after cache expiration"
+            echo "Please trigger a rebuild by modifying libADLMIDI or build.sh"
+            exit 1
+          fi
+          echo "✅ WASM build files found"
+
       - name: Generate JS bundles
         run: |
-          npm ci
           npm run build:js
           npm run build:banks
+
+      # Save WASM to cache for future runs
+      - name: Cache WASM build
+        if: needs.changes.outputs.wasm == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build-*/
+          key: wasm-build-${{ github.sha }}
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
@@ -56,7 +140,7 @@ jobs:
           retention-days: 7
 
   test:
-    needs: [lint, build]
+    needs: [lint, js-build]
     timeout-minutes: 15
     runs-on: ubuntu-latest
 
