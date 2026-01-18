@@ -98,6 +98,15 @@
   "files": [
     "dist/",
     "src/",
+    "index.js",
+    "nuked.js",
+    "dosbox.js",
+    "light.js",
+    "full.js",
+    "nuked-slim.js",
+    "dosbox-slim.js",
+    "light-slim.js",
+    "full-slim.js",
     "README.md"
   ]
 }
