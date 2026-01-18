@@ -77,15 +77,6 @@ jobs:
         if: needs.changes.outputs.wasm == 'true' || steps.cache-check.outputs.cache-hit != 'true'
         run: ./build.sh all
 
-      - name: Upload WASM artifacts
-        if: needs.changes.outputs.wasm == 'true' || steps.cache-check.outputs.cache-hit != 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: wasm-build
-          path: |
-            build-*/
-          retention-days: 7
-
       - name: Cache WASM build
         if: needs.changes.outputs.wasm == 'true' || steps.cache-check.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -111,10 +102,15 @@ jobs:
 
       - run: npm ci
 
-      - name: Download WASM build
-        uses: actions/download-artifact@v4
+      - name: Restore WASM build from cache
+        uses: actions/cache/restore@v4
         with:
-          name: wasm-build
+          path: |
+            build-*/
+          key: wasm-build-${{ github.sha }}
+          restore-keys: |
+            wasm-build-
+          fail-on-cache-miss: true
 
       - name: Generate JS bundles
         run: |
