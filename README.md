@@ -4,7 +4,6 @@ WebAssembly build of [libADLMIDI](https://github.com/Wohlstand/libADLMIDI) - a f
 
 ## Features
 
-- **Profile-based Builds**: Optimized builds for different use cases
 - **AudioWorklet Integration**: Runs synthesis in a separate thread to prevent UI stuttering. Interoperates with all the usual browser audio APIs.
 - **WOPL Bank Support**: Load custom FM banks or use the high-quality embedded banks.
 - **Real-time API**: Fine-grained control over MIDI channels, notes, and controllers.
@@ -22,7 +21,7 @@ npm install libadlmidi-js
 import { AdlMidi } from 'libadlmidi-js/nuked';
 
 const synth = new AdlMidi();
-await synth.init();  // Zero-config! No paths needed.
+await synth.init();
 
 // Play a middle C on channel 0
 synth.noteOn(0, 60, 100);
@@ -40,7 +39,7 @@ For batch rendering, custom audio backends, or non-browser environments:
 ```javascript
 import { AdlMidiCore } from 'libadlmidi-js/nuked';
 
-const synth = await AdlMidiCore.create();  // Zero-config!
+const synth = await AdlMidiCore.create();
 
 synth.init(44100);
 synth.setBank(72);
@@ -77,13 +76,26 @@ await synth.loadBankFile('./mybank.wopl');  // Load WOPL bank
 For direct OPL3 instrument manipulation:
 
 ```javascript
+import { AdlMidi } from 'libadlmidi-js/nuked';
 import { encodeInstrument, decodeInstrument, defaultInstrument } from 'libadlmidi-js/structs';
 
+const synth = new AdlMidi();
+await synth.init();
+
+// Create a custom instrument from the default template
 const inst = defaultInstrument();
 inst.operators[0].attack = 15;
+inst.operators[0].decay = 8;
 inst.feedback1 = 7;
 
+// Encode and apply to channel 0
 const bytes = encodeInstrument(inst);  // 40-byte Uint8Array
+synth.setCustomInstrument(0, bytes);
+
+// Notes on channel 0 now use the custom instrument
+synth.noteOn(0, 60, 100);
+
+// You can also decode instrument data from a bank
 const decoded = decodeInstrument(bytes);
 ```
 
