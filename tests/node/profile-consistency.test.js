@@ -8,6 +8,9 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 
+// Non-profile exports that should be excluded from consistency checks
+const NON_PROFILE_EXPORTS = new Set(['.', './core', './structs', './dist/*']);
+
 /**
  * Extract profile names from build.sh EMULATOR_PROFILES array
  */
@@ -27,41 +30,68 @@ function getProfilesFromBuildScript() {
 }
 
 /**
- * Extract profile names from package.json exports
+ * Extract base profile names from package.json exports (stripping /slim suffix)
  */
-function getProfilesFromPackageJson() {
+function getBaseProfilesFromPackageJson() {
     const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
     const exports = pkg.exports || {};
 
-    // Filter to profile exports (start with ./ but not just ".")
-    const profiles = Object.keys(exports)
-        .filter(key => key.startsWith('./') && key !== '.')
-        .map(key => key.slice(2)) // Remove "./" prefix
-        .sort();
+    // Get unique base profiles (./nuked and ./nuked/slim both count as "nuked")
+    const baseProfiles = new Set();
+    for (const key of Object.keys(exports)) {
+        if (NON_PROFILE_EXPORTS.has(key)) continue;
+        // Extract base profile: ./nuked -> nuked, ./nuked/slim -> nuked
+        const match = key.match(/^\.\/([a-z]+)/);
+        if (match) {
+            baseProfiles.add(match[1]);
+        }
+    }
 
-    return profiles;
+    return [...baseProfiles].sort();
 }
 
 describe('Profile Consistency', () => {
-    it('package.json exports should match build.sh profiles', () => {
+    it('package.json exports should cover all build.sh profiles', () => {
         const buildProfiles = getProfilesFromBuildScript();
-        const pkgProfiles = getProfilesFromPackageJson();
+        const pkgProfiles = getBaseProfilesFromPackageJson();
 
         expect(buildProfiles.length).toBeGreaterThan(0);
         expect(pkgProfiles).toEqual(buildProfiles);
     });
 
-    it('package.json exports should have correct file paths', () => {
+    it('package.json profile exports should point to wrapper modules', () => {
+        const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+        const exports = pkg.exports || {};
+        const buildProfiles = getProfilesFromBuildScript();
+
+        for (const profile of buildProfiles) {
+            // Check main profile
+            const mainExport = exports[`./${profile}`];
+            expect(mainExport).toBeDefined();
+            expect(mainExport.import).toBe(`./src/profiles/${profile}.js`);
+
+            // Check slim variant
+            const slimExport = exports[`./${profile}/slim`];
+            expect(slimExport).toBeDefined();
+            expect(slimExport.import).toBe(`./src/profiles/${profile}.slim.js`);
+        }
+    });
+
+    it('package.json should have module exports with correct structure', () => {
         const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
         const exports = pkg.exports || {};
 
-        for (const [key, value] of Object.entries(exports)) {
-            if (key === '.') continue; // Skip main export
+        // Check ./core export
+        expect(exports['./core']).toBeDefined();
+        expect(exports['./core'].import).toBe('./src/core.js');
+        expect(exports['./core'].types).toBe('./dist/core.d.ts');
 
-            const profile = key.slice(2); // Remove "./" prefix
+        // Check ./structs export
+        expect(exports['./structs']).toBeDefined();
+        expect(exports['./structs'].import).toBe('./src/utils/struct.js');
 
-            expect(value.processor).toBe(`./dist/libadlmidi.${profile}.processor.js`);
-            expect(value.wasm).toBe(`./dist/libadlmidi.${profile}.core.wasm`);
-        }
+        // Check ./dist/* wildcard for power users
+        expect(exports['./dist/*']).toBe('./dist/*');
     });
 });
+

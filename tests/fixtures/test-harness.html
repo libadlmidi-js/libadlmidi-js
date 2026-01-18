@@ -228,6 +228,68 @@
                 const hash = await this.hashSamples(left);
 
                 return { hash, rms };
+            },
+
+            /**
+             * Generate audio with a specific profile (emulator build)
+             * @param {Object} options
+             * @param {string} options.profile - Profile name (nuked, dosbox, light, full)
+             * @param {number} options.durationMs - Duration in milliseconds
+             * @param {number} [options.note=60] - MIDI note to play
+             * @param {number} [options.bank=72] - Bank number
+             * @returns {Promise<{hash: string, rms: number, samples: Float32Array}>}
+             */
+            async generateAudioWithProfile(options) {
+                const { profile = 'nuked', durationMs = 1000, note = 60, bank = 72 } = options;
+
+                const sampleRate = 44100;
+                const samples = Math.floor((durationMs / 1000) * sampleRate);
+                const ctx = new OfflineAudioContext(2, samples, sampleRate);
+
+                // Load the profile-specific processor
+                const processorUrl = `../../dist/libadlmidi.${profile}.processor.js`;
+                await ctx.audioWorklet.addModule(processorUrl);
+
+                const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
+                    processorOptions: { sampleRate }
+                });
+                node.connect(ctx.destination);
+
+                // Wait for ready
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error(`${profile} profile timeout`)), 5000);
+                    node.port.onmessage = (e) => {
+                        if (e.data.type === 'ready') {
+                            clearTimeout(timeout);
+                            resolve();
+                        } else if (e.data.type === 'error') {
+                            clearTimeout(timeout);
+                            reject(new Error(e.data.message));
+                        }
+                    };
+                });
+
+                // Set bank and play note
+                node.port.postMessage({ type: 'setBank', bank });
+                await new Promise(r => setTimeout(r, 100));
+
+                node.port.postMessage({ type: 'noteOn', channel: 0, note, velocity: 100 });
+
+                // Render
+                const buffer = await ctx.startRendering();
+                const left = buffer.getChannelData(0);
+
+                // Calculate RMS
+                let sum = 0;
+                for (let i = 0; i < left.length; i++) {
+                    sum += left[i] * left[i];
+                }
+                const rms = Math.sqrt(sum / left.length);
+
+                // Hash
+                const hash = await this.hashSamples(left);
+
+                return { hash, rms, samples: left };
             }
         };
 

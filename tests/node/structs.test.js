@@ -12,6 +12,10 @@ import {
     OPERATOR_OFFSET,
     decodeOperator,
     encodeOperator,
+    defaultOperator,
+    decodeInstrument,
+    encodeInstrument,
+    defaultInstrument,
 } from '../../src/utils/struct.js';
 
 describe('Operator Encoding', () => {
@@ -104,6 +108,133 @@ describe('Operator Encoding', () => {
         expect(bytes[2]).toBe(0xF8); // attack=15, decay=8
         expect(bytes[3]).toBe(0x26); // sustain=2, release=6
         expect(bytes[4]).toBe(0x01); // waveform=1
+    });
+});
+
+describe('Instrument Encoding', () => {
+    it('should encode and decode instrument roundtrip', () => {
+        const original = {
+            version: 1,
+            noteOffset1: -12,
+            noteOffset2: 7,
+            velocityOffset: -5,
+            secondVoiceDetune: 3,
+            percussionKey: 36,
+            is4op: true,
+            isPseudo4op: false,
+            isBlank: false,
+            rhythmMode: 2,
+            feedback1: 5,
+            connection1: 1,
+            feedback2: 3,
+            connection2: 0,
+            operators: [
+                defaultOperator(),
+                defaultOperator(),
+                defaultOperator(),
+                defaultOperator(),
+            ],
+            delayOnMs: 100,
+            delayOffMs: 50,
+        };
+
+        const encoded = encodeInstrument(original);
+        expect(encoded.length).toBe(SIZEOF_ADL_INSTRUMENT);
+
+        const decoded = decodeInstrument(encoded);
+
+        expect(decoded.version).toBe(original.version);
+        expect(decoded.noteOffset1).toBe(original.noteOffset1);
+        expect(decoded.noteOffset2).toBe(original.noteOffset2);
+        expect(decoded.velocityOffset).toBe(original.velocityOffset);
+        expect(decoded.secondVoiceDetune).toBe(original.secondVoiceDetune);
+        expect(decoded.percussionKey).toBe(original.percussionKey);
+        expect(decoded.is4op).toBe(original.is4op);
+        expect(decoded.isPseudo4op).toBe(original.isPseudo4op);
+        expect(decoded.isBlank).toBe(original.isBlank);
+        expect(decoded.rhythmMode).toBe(original.rhythmMode);
+        expect(decoded.feedback1).toBe(original.feedback1);
+        expect(decoded.connection1).toBe(original.connection1);
+        expect(decoded.feedback2).toBe(original.feedback2);
+        expect(decoded.connection2).toBe(original.connection2);
+        expect(decoded.delayOnMs).toBe(original.delayOnMs);
+        expect(decoded.delayOffMs).toBe(original.delayOffMs);
+    });
+
+    it('should handle all instrument flags', () => {
+        const allFlags = {
+            ...defaultInstrument(),
+            is4op: true,
+            isPseudo4op: true,
+            isBlank: true,
+            rhythmMode: 7,
+        };
+
+        const encoded = encodeInstrument(allFlags);
+        const decoded = decodeInstrument(encoded);
+
+        expect(decoded.is4op).toBe(true);
+        expect(decoded.isPseudo4op).toBe(true);
+        expect(decoded.isBlank).toBe(true);
+        expect(decoded.rhythmMode).toBe(7);
+    });
+
+    it('should handle maximum feedback/connection values', () => {
+        const maxValues = {
+            ...defaultInstrument(),
+            feedback1: 7,
+            connection1: 1,
+            feedback2: 7,
+            connection2: 1,
+        };
+
+        const encoded = encodeInstrument(maxValues);
+        const decoded = decodeInstrument(encoded);
+
+        expect(decoded.feedback1).toBe(7);
+        expect(decoded.connection1).toBe(1);
+        expect(decoded.feedback2).toBe(7);
+        expect(decoded.connection2).toBe(1);
+    });
+
+    it('should preserve operator data through roundtrip', () => {
+        const customOp = {
+            am: true,
+            vibrato: true,
+            sustaining: false,
+            ksr: true,
+            freqMult: 8,
+            keyScaleLevel: 2,
+            totalLevel: 25,
+            attack: 10,
+            decay: 5,
+            sustain: 7,
+            release: 9,
+            waveform: 4,
+        };
+
+        const inst = {
+            ...defaultInstrument(),
+            operators: [customOp, customOp, defaultOperator(), defaultOperator()],
+        };
+
+        const encoded = encodeInstrument(inst);
+        const decoded = decodeInstrument(encoded);
+
+        expect(decoded.operators[0]).toEqual(customOp);
+        expect(decoded.operators[1]).toEqual(customOp);
+    });
+
+    it('should create valid default instrument', () => {
+        const inst = defaultInstrument();
+
+        expect(inst.version).toBe(0);
+        expect(inst.isBlank).toBe(true);
+        expect(inst.operators).toHaveLength(4);
+
+        // Should encode without error
+        const encoded = encodeInstrument(inst);
+        expect(encoded.length).toBe(SIZEOF_ADL_INSTRUMENT);
     });
 });
 

@@ -203,3 +203,86 @@ test.describe('Split Build Mode', () => {
         expect(splitResult.rms).toBeGreaterThan(0.001);
     });
 });
+
+test.describe('Emulator Profiles', () => {
+    const profiles = ['nuked', 'dosbox', 'light', 'full'];
+
+    for (const profile of profiles) {
+        test(`${profile} profile should produce audio`, async ({ page }) => {
+            await page.goto('/tests/fixtures/test-harness.html');
+            await page.waitForFunction(() => window.testReady === true, { timeout: 10000 });
+
+            const result = await page.evaluate(async (prof) => {
+                return await window.testUtils.generateAudioWithProfile({
+                    profile: prof,
+                    durationMs: 300,
+                    note: 60,
+                    bank: 72
+                });
+            }, profile);
+
+            expect(result.rms).toBeGreaterThan(0.001);
+            console.log(`${profile} profile RMS: ${result.rms.toFixed(6)}, Hash: ${result.hash.substring(0, 16)}...`);
+        });
+
+        test(`${profile} profile should be deterministic`, async ({ page }) => {
+            await page.goto('/tests/fixtures/test-harness.html');
+            await page.waitForFunction(() => window.testReady === true, { timeout: 10000 });
+
+            const result1 = await page.evaluate(async (prof) => {
+                return await window.testUtils.generateAudioWithProfile({
+                    profile: prof,
+                    durationMs: 200,
+                    note: 64,
+                    bank: 72
+                });
+            }, profile);
+
+            await page.reload();
+            await page.waitForFunction(() => window.testReady === true);
+
+            const result2 = await page.evaluate(async (prof) => {
+                return await window.testUtils.generateAudioWithProfile({
+                    profile: prof,
+                    durationMs: 200,
+                    note: 64,
+                    bank: 72
+                });
+            }, profile);
+
+            expect(result1.hash).toBe(result2.hash);
+        });
+    }
+
+    test('nuked and dosbox profiles should produce different output', async ({ page }) => {
+        await page.goto('/tests/fixtures/test-harness.html');
+        await page.waitForFunction(() => window.testReady === true, { timeout: 10000 });
+
+        const nukedResult = await page.evaluate(async () => {
+            return await window.testUtils.generateAudioWithProfile({
+                profile: 'nuked',
+                durationMs: 300,
+                note: 60,
+                bank: 72
+            });
+        });
+
+        await page.reload();
+        await page.waitForFunction(() => window.testReady === true);
+
+        const dosboxResult = await page.evaluate(async () => {
+            return await window.testUtils.generateAudioWithProfile({
+                profile: 'dosbox',
+                durationMs: 300,
+                note: 60,
+                bank: 72
+            });
+        });
+
+        // Different emulators should produce different (but valid) audio
+        expect(nukedResult.hash).not.toBe(dosboxResult.hash);
+        expect(nukedResult.rms).toBeGreaterThan(0.001);
+        expect(dosboxResult.rms).toBeGreaterThan(0.001);
+    });
+});
+
