@@ -68,6 +68,7 @@ jobs:
         with:
           path: docs
 
+  # Deploy to project page: https://libadlmidi-js.github.io/libadlmidi-js/
   deploy:
     environment:
       name: github-pages
@@ -78,3 +79,28 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Deploy to org root: https://libadlmidi-js.github.io/
+  deploy-root:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download built docs
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: site
+
+      - name: Extract artifact
+        run: |
+          cd site
+          tar -xf artifact.tar
+          rm artifact.tar
+
+      - name: Deploy to libadlmidi-js.github.io
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          deploy_key: ${{ secrets.PAGES_DEPLOY_KEY }}
+          external_repository: libadlmidi-js/libadlmidi-js.github.io
+          publish_branch: main
+          publish_dir: ./site
