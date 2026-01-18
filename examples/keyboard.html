@@ -235,6 +235,9 @@
                 setStatus('Initializing AudioWorklet...');
                 await synth.init('../dist/libadlmidi.nuked.processor.js');
 
+                // Expose for testing
+                window.synth = synth;
+
                 setStatus('Ready! Click keys or use keyboard (Z-M, Q-U)');
 
                 document.getElementById('initBtn').disabled = true;
