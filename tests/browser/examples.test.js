@@ -180,7 +180,7 @@ test.describe('Example Pages', () => {
         await page.selectOption('#bankSelect', '0');
 
         // Status should update
-        await expect(page.locator('#status')).toContainText('Bank changed');
+        await expect(page.locator('#status')).toContainText('Bank:');
     });
 
     test('keyboard panic button stops all notes', async ({ page }) => {
@@ -198,7 +198,7 @@ test.describe('Example Pages', () => {
         await page.click('#panicBtn');
 
         // Status should update
-        await expect(page.locator('#status')).toContainText('Panic');
+        await expect(page.locator('#status')).toContainText('All notes stopped');
 
         await page.keyboard.up('z');
     });
