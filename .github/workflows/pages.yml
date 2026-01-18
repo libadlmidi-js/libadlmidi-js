@@ -54,10 +54,11 @@ jobs:
           # Create docs/examples directory
           mkdir -p docs/examples
           
-          # Copy dist files to docs
+          # Copy dist and src (examples import from src/profiles/)
           cp -r dist docs/dist
+          cp -r src docs/src
           
-          # Copy examples (relative paths work since structure mirrors source)
+          # Copy examples
           cp examples/*.html docs/examples/
 
       - name: Setup Pages
