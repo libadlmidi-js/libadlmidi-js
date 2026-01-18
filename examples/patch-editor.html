@@ -4,8 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OPL3 Patch Editor - libADLMIDI-JS</title>
+    <title>Patch Editor - libADLMIDI-JS</title>
     <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #222;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999;
+            --accent: #4a9;
+            --accent-hover: #5ba;
+            --border: #3a3a3a;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -14,15 +25,15 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 50%, #16213e 100%);
-            color: #eee;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
         }
 
         h1 {
-            color: #00d9ff;
-            text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
-            margin-bottom: 10px;
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 5px;
         }
 
         .header {
@@ -35,75 +46,72 @@
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid var(--border);
             margin-bottom: 15px;
         }
 
         button {
-            background: linear-gradient(135deg, #00d9ff, #00a8cc);
+            background: var(--accent);
             color: #000;
             border: none;
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: 6px;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s;
         }
 
         button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3);
+            background: var(--accent-hover);
         }
 
         button:disabled {
-            background: #333;
-            color: #666;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
             cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
 
         button.secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #eee;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
 
         select,
         input[type="number"] {
-            background: rgba(255, 255, 255, 0.1);
-            color: #eee;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-size: 13px;
         }
 
         input[type="number"] {
-            width: 60px;
+            width: 55px;
         }
 
         label {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 13px;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
         .operator-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 12px;
         }
 
         .operator-card {
-            background: rgba(0, 217, 255, 0.05);
-            border: 1px solid rgba(0, 217, 255, 0.2);
-            border-radius: 12px;
-            padding: 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
         }
 
         .operator-card.disabled {
@@ -112,109 +120,109 @@
         }
 
         .operator-card h3 {
-            margin: 0 0 12px 0;
-            color: #00d9ff;
-            font-size: 14px;
+            margin: 0 0 10px 0;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
         }
 
         .param-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
         .param {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 2px;
         }
 
         .param label {
             font-size: 10px;
-            color: #888;
+            color: var(--text-secondary);
             text-transform: uppercase;
         }
 
         .param input[type="range"] {
-            width: 80px;
+            width: 70px;
             -webkit-appearance: none;
             appearance: none;
-            height: 5px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
         }
 
         .param input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 12px;
-            height: 12px;
-            background: #00d9ff;
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
             border-radius: 50%;
             cursor: pointer;
         }
 
         .param-value {
-            font-size: 11px;
-            color: #00d9ff;
-            font-weight: bold;
-            min-width: 18px;
+            font-size: 10px;
+            color: var(--accent);
+            font-weight: 500;
+            min-width: 16px;
             text-align: center;
         }
 
         .toggle-row {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .toggle {
             display: flex;
             align-items: center;
-            gap: 4px;
-            font-size: 11px;
+            gap: 3px;
+            font-size: 10px;
         }
 
         .toggle input[type="checkbox"] {
-            width: 14px;
-            height: 14px;
-            accent-color: #00d9ff;
+            width: 12px;
+            height: 12px;
+            accent-color: var(--accent);
         }
 
         .waveform-select {
             display: flex;
-            gap: 3px;
-            margin-top: 6px;
+            gap: 2px;
+            margin-top: 4px;
         }
 
         .waveform-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            font-size: 10px;
+            width: 26px;
+            height: 26px;
+            border-radius: 3px;
+            font-size: 9px;
             padding: 0;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #888;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s;
             font-family: monospace;
         }
 
         .waveform-btn.active {
-            background: rgba(0, 217, 255, 0.2);
-            border-color: #00d9ff;
-            color: #00d9ff;
+            background: rgba(68, 170, 153, 0.2);
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         .waveform-btn:hover {
-            background: rgba(0, 217, 255, 0.1);
+            background: rgba(68, 170, 153, 0.1);
         }
 
         .global-params {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             flex-wrap: wrap;
             align-items: center;
         }
@@ -222,18 +230,18 @@
         .keyboard {
             display: flex;
             position: relative;
-            height: 100px;
-            margin-top: 10px;
+            height: 90px;
+            margin-top: 8px;
         }
 
         .key {
-            width: 36px;
-            height: 100px;
+            width: 32px;
+            height: 90px;
             background: linear-gradient(180deg, #f5f5f5, #ddd);
             border: 1px solid #999;
             border-radius: 0 0 4px 4px;
             cursor: pointer;
-            transition: all 0.1s;
+            transition: background 0.1s;
         }
 
         .key:hover {
@@ -241,16 +249,16 @@
         }
 
         .key.active {
-            background: linear-gradient(180deg, #00d9ff, #00a8cc);
+            background: linear-gradient(180deg, #8cf, #6ad);
         }
 
         .key.black {
-            width: 24px;
-            height: 60px;
+            width: 22px;
+            height: 55px;
             background: linear-gradient(180deg, #333, #111);
             border-color: #000;
-            margin-left: -12px;
-            margin-right: -12px;
+            margin-left: -11px;
+            margin-right: -11px;
             z-index: 1;
             position: relative;
         }
@@ -260,13 +268,13 @@
         }
 
         .key.black.active {
-            background: linear-gradient(180deg, #0099bb, #007799);
+            background: linear-gradient(180deg, #456, #234);
         }
 
         #status {
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 6px;
+            padding: 10px 12px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
             font-family: monospace;
             font-size: 12px;
         }
@@ -274,22 +282,22 @@
         .connection-box {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 6px;
-            font-size: 12px;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            font-size: 11px;
             font-family: monospace;
         }
 
         .op-label {
-            padding: 4px 8px;
-            background: rgba(0, 217, 255, 0.15);
-            border-radius: 4px;
+            padding: 3px 6px;
+            background: rgba(68, 170, 153, 0.15);
+            border-radius: 3px;
         }
 
         .arrow {
-            color: #00d9ff;
+            color: var(--accent);
         }
     </style>
 </head>
@@ -297,13 +305,13 @@
 <body>
     <div class="header">
         <div>
-            <h1>🎛️ OPL3 Patch Editor</h1>
-            <p style="margin: 0; color: #888; font-size: 13px;">Real-time FM synthesis instrument editing</p>
+            <h1>OPL3 Patch Editor</h1>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 12px;">Real-time FM instrument editing</p>
         </div>
-        <button id="initBtn">Initialize Synth</button>
+        <button id="initBtn">Initialize</button>
     </div>
 
-    <div id="status">Status: Not initialized</div>
+    <div id="status">Not initialized</div>
 
     <div class="card">
         <div class="global-params">
@@ -327,27 +335,27 @@
             </label>
             <label title="Note offset in semitones">
                 Transpose:
-                <input type="number" id="noteOffset1" min="-24" max="24" value="0" disabled style="width:50px">
+                <input type="number" id="noteOffset1" min="-24" max="24" value="0" disabled style="width:48px">
             </label>
         </div>
         <div class="global-params" style="margin-top: 10px;">
             <div
-                style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:rgba(0,0,0,0.2); border-radius:6px;">
-                <span style="color:#888; font-size:11px;">Voice 1:</span>
+                style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--bg-tertiary); border-radius:4px;">
+                <span style="color:var(--text-secondary); font-size:10px;">Voice 1:</span>
                 <label>FB <input type="number" id="feedback1" min="0" max="7" value="0" disabled
-                        style="width:40px"></label>
+                        style="width:36px"></label>
                 <label><input type="checkbox" id="connection1Check" disabled> Additive</label>
             </div>
             <div id="voice2Controls"
-                style="display:none; align-items:center; gap:10px; padding:8px 12px; background:rgba(0,0,0,0.2); border-radius:6px;">
-                <span style="color:#888; font-size:11px;">Voice 2:</span>
+                style="display:none; align-items:center; gap:8px; padding:6px 10px; background:var(--bg-tertiary); border-radius:4px;">
+                <span style="color:var(--text-secondary); font-size:10px;">Voice 2:</span>
                 <label>FB <input type="number" id="feedback2" min="0" max="7" value="0" disabled
-                        style="width:40px"></label>
+                        style="width:36px"></label>
                 <label><input type="checkbox" id="connection2Check" disabled> Additive</label>
             </div>
         </div>
         <div style="margin-top: 10px;">
-            <span style="color: #888; font-size: 11px;">Routing: </span>
+            <span style="color: var(--text-secondary); font-size: 10px;">Routing: </span>
             <span class="connection-box" id="connectionDiagram"></span>
         </div>
     </div>
@@ -355,8 +363,9 @@
     <div class="operator-grid" id="operatorGrid"></div>
 
     <div class="card">
-        <h3 style="margin: 0 0 8px 0; color: #00d9ff; font-size: 14px;">🎹 Test Keyboard</h3>
-        <p style="color: #888; font-size: 11px; margin: 0 0 8px 0;">Click keys or use A-K. Changes apply instantly!</p>
+        <h3 style="margin: 0 0 6px 0; color: var(--text-primary); font-size: 13px; font-weight: 500;">Test Keyboard</h3>
+        <p style="color: var(--text-secondary); font-size: 10px; margin: 0 0 6px 0;">Click keys or use A-K. Changes
+            apply instantly.</p>
         <div class="keyboard" id="keyboard"></div>
     </div>
 
@@ -365,10 +374,8 @@
         let currentInstrument = null;
         const activeNotes = new Map();
 
-        // OPL3 waveform names
         const WAVEFORMS = ['Sine', '½Sin', '|Sin|', '¼Sin', 'Saw', '|Saw|', 'Sqr', 'Log'];
 
-        // GM instrument names (first 32)
         const GM_NAMES = [
             'Acoustic Grand Piano', 'Bright Acoustic Piano', 'Electric Grand Piano', 'Honky-tonk Piano',
             'Electric Piano 1', 'Electric Piano 2', 'Harpsichord', 'Clavinet',
@@ -381,10 +388,9 @@
         ];
 
         function setStatus(msg) {
-            document.getElementById('status').textContent = 'Status: ' + msg;
+            document.getElementById('status').textContent = msg;
         }
 
-        // Populate program dropdown
         function populateProgramSelect() {
             const sel = document.getElementById('programSelect');
             sel.innerHTML = '';
@@ -394,32 +400,27 @@
             }
         }
 
-        // Update connection diagram based on current settings
         function updateConnectionDiagram() {
             const is4op = document.getElementById('is4opCheck').checked;
             const c1 = document.getElementById('connection1Check').checked;
             const c2 = document.getElementById('connection2Check')?.checked || false;
             const diag = document.getElementById('connectionDiagram');
 
-            // Show/hide voice 2 controls for 4-op
             const v2 = document.getElementById('voice2Controls');
             if (v2) v2.style.display = is4op ? 'flex' : 'none';
 
-            // Build proper 2D visual routing diagrams with explicit grid positioning
             const gridStyle = 'display:grid; grid-template-rows:1fr 1fr; gap:2px 4px; align-items:center; line-height:1.2;';
 
             if (is4op) {
                 if (!c1 && !c2) {
-                    // Mode 0: Full FM chain: 1→2→3→4→OUT (single row)
                     diag.innerHTML = `<div style="display:flex; align-items:center; gap:4px;">
                         <span class="op-label">1</span><span class="arrow">→</span>
                         <span class="op-label">2</span><span class="arrow">→</span>
                         <span class="op-label">3</span><span class="arrow">→</span>
                         <span class="op-label">4</span><span class="arrow">→</span>
-                        <span style="color:#0f8;font-weight:bold">OUT</span>
+                        <span style="color:var(--accent);font-weight:500">OUT</span>
                     </div>`;
                 } else if (c1 && !c2) {
-                    // Mode 1: (1+2)→3→4→OUT - 1 and 2 merge into 3
                     diag.innerHTML = `<div style="${gridStyle}">
                         <span style="grid-row:1;grid-column:1" class="op-label">1</span>
                         <span style="grid-row:1;grid-column:2" class="arrow">↘</span>
@@ -427,31 +428,29 @@
                         <span style="grid-row:1/3;grid-column:4" class="arrow">→</span>
                         <span style="grid-row:1/3;grid-column:5" class="op-label">4</span>
                         <span style="grid-row:1/3;grid-column:6" class="arrow">→</span>
-                        <span style="grid-row:1/3;grid-column:7;color:#0f8;font-weight:bold">OUT</span>
+                        <span style="grid-row:1/3;grid-column:7;color:var(--accent);font-weight:500">OUT</span>
                         <span style="grid-row:2;grid-column:1" class="op-label">2</span>
                         <span style="grid-row:2;grid-column:2" class="arrow">↗</span>
                     </div>`;
                 } else if (!c1 && c2) {
-                    // Mode 2: (1→2) + (3→4) → OUT - two parallel chains
                     diag.innerHTML = `<div style="${gridStyle}">
                         <span style="grid-row:1;grid-column:1" class="op-label">1</span>
                         <span style="grid-row:1;grid-column:2" class="arrow">→</span>
                         <span style="grid-row:1;grid-column:3" class="op-label">2</span>
                         <span style="grid-row:1;grid-column:4" class="arrow">↘</span>
-                        <span style="grid-row:1/3;grid-column:5;color:#0f8;font-weight:bold">OUT</span>
+                        <span style="grid-row:1/3;grid-column:5;color:var(--accent);font-weight:500">OUT</span>
                         <span style="grid-row:2;grid-column:1" class="op-label">3</span>
                         <span style="grid-row:2;grid-column:2" class="arrow">→</span>
                         <span style="grid-row:2;grid-column:3" class="op-label">4</span>
                         <span style="grid-row:2;grid-column:4" class="arrow">↗</span>
                     </div>`;
                 } else {
-                    // Mode 3: All additive 1+2+3+4→OUT
                     diag.innerHTML = `<div style="${gridStyle}">
                         <span style="grid-row:1;grid-column:1" class="op-label">1</span>
                         <span style="grid-row:1;grid-column:2" class="arrow">↘</span>
                         <span style="grid-row:1;grid-column:3" class="op-label">2</span>
                         <span style="grid-row:1;grid-column:4" class="arrow">↘</span>
-                        <span style="grid-row:1/3;grid-column:5;color:#0f8;font-weight:bold">OUT</span>
+                        <span style="grid-row:1/3;grid-column:5;color:var(--accent);font-weight:500">OUT</span>
                         <span style="grid-row:2;grid-column:1" class="op-label">3</span>
                         <span style="grid-row:2;grid-column:2" class="arrow">↗</span>
                         <span style="grid-row:2;grid-column:3" class="op-label">4</span>
@@ -459,33 +458,28 @@
                     </div>`;
                 }
             } else {
-                // 2-op mode
                 if (c1) {
-                    // Additive: 1+2→OUT
                     diag.innerHTML = `<div style="${gridStyle}">
                         <span style="grid-row:1;grid-column:1" class="op-label">1</span>
                         <span style="grid-row:1;grid-column:2" class="arrow">↘</span>
-                        <span style="grid-row:1/3;grid-column:3;color:#0f8;font-weight:bold">OUT</span>
+                        <span style="grid-row:1/3;grid-column:3;color:var(--accent);font-weight:500">OUT</span>
                         <span style="grid-row:2;grid-column:1" class="op-label">2</span>
                         <span style="grid-row:2;grid-column:2" class="arrow">↗</span>
                     </div>`;
                 } else {
-                    // FM: 1→2→OUT
                     diag.innerHTML = `<div style="display:flex; align-items:center; gap:4px;">
                         <span class="op-label">1</span><span class="arrow">→</span>
                         <span class="op-label">2</span><span class="arrow">→</span>
-                        <span style="color:#0f8;font-weight:bold">OUT</span>
+                        <span style="color:var(--accent);font-weight:500">OUT</span>
                     </div>`;
                 }
             }
 
-            // Update operator card visibility
             document.querySelectorAll('.operator-card').forEach((card, i) => {
                 card.classList.toggle('disabled', !is4op && i >= 2);
             });
         }
 
-        // Create operator UI
         function createOperatorUI() {
             const grid = document.getElementById('operatorGrid');
             grid.innerHTML = '';
@@ -507,28 +501,28 @@
                     <div class="param-row">
                         <div class="param">
                             <label>Attack</label>
-                            <div style="display:flex;align-items:center;gap:3px;">
+                            <div style="display:flex;align-items:center;gap:2px;">
                                 <input type="range" id="op${i}-attack" min="0" max="15" value="12" oninput="updateOperator(${i})">
                                 <span class="param-value" id="op${i}-attack-val">12</span>
                             </div>
                         </div>
                         <div class="param">
                             <label>Decay</label>
-                            <div style="display:flex;align-items:center;gap:3px;">
+                            <div style="display:flex;align-items:center;gap:2px;">
                                 <input type="range" id="op${i}-decay" min="0" max="15" value="4" oninput="updateOperator(${i})">
                                 <span class="param-value" id="op${i}-decay-val">4</span>
                             </div>
                         </div>
                         <div class="param">
                             <label>Sustain</label>
-                            <div style="display:flex;align-items:center;gap:3px;">
+                            <div style="display:flex;align-items:center;gap:2px;">
                                 <input type="range" id="op${i}-sustain" min="0" max="15" value="2" oninput="updateOperator(${i})">
                                 <span class="param-value" id="op${i}-sustain-val">2</span>
                             </div>
                         </div>
                         <div class="param">
                             <label>Release</label>
-                            <div style="display:flex;align-items:center;gap:3px;">
+                            <div style="display:flex;align-items:center;gap:2px;">
                                 <input type="range" id="op${i}-release" min="0" max="15" value="6" oninput="updateOperator(${i})">
                                 <span class="param-value" id="op${i}-release-val">6</span>
                             </div>
@@ -537,22 +531,22 @@
 
                     <div class="param-row">
                         <div class="param">
-                            <label>Level (Vol)</label>
-                            <div style="display:flex;align-items:center;gap:3px;">
+                            <label>Level</label>
+                            <div style="display:flex;align-items:center;gap:2px;">
                                 <input type="range" id="op${i}-totalLevel" min="0" max="63" value="20" oninput="updateOperator(${i})">
                                 <span class="param-value" id="op${i}-totalLevel-val">20</span>
                             </div>
                         </div>
                         <div class="param">
                             <label>Mult</label>
-                            <div style="display:flex;align-items:center;gap:3px;">
+                            <div style="display:flex;align-items:center;gap:2px;">
                                 <input type="range" id="op${i}-freqMult" min="0" max="15" value="1" oninput="updateOperator(${i})">
                                 <span class="param-value" id="op${i}-freqMult-val">1</span>
                             </div>
                         </div>
                         <div class="param">
                             <label>KSL</label>
-                            <div style="display:flex;align-items:center;gap:3px;">
+                            <div style="display:flex;align-items:center;gap:2px;">
                                 <input type="range" id="op${i}-keyScaleLevel" min="0" max="3" value="0" oninput="updateOperator(${i})">
                                 <span class="param-value" id="op${i}-keyScaleLevel-val">0</span>
                             </div>
@@ -560,7 +554,7 @@
                     </div>
 
                     <div>
-                        <label style="font-size:10px;color:#888;margin-bottom:3px;display:block;">WAVEFORM</label>
+                        <label style="font-size:9px;color:var(--text-secondary);margin-bottom:2px;display:block;">WAVEFORM</label>
                         <div class="waveform-select" id="op${i}-waveforms">
                             ${WAVEFORMS.map((name, w) => `
                                 <button class="waveform-btn ${w === 0 ? 'active' : ''}" 
@@ -573,7 +567,6 @@
             }
         }
 
-        // Create keyboard
         function createKeyboard() {
             const keyboard = document.getElementById('keyboard');
             const notes = [
@@ -642,7 +635,6 @@
                     document.getElementById(`op${opIndex}-${param}`).value;
             });
 
-            // Update global params
             currentInstrument.feedback1 = parseInt(document.getElementById('feedback1').value) || 0;
             currentInstrument.connection1 = document.getElementById('connection1Check').checked ? 1 : 0;
             currentInstrument.is4op = document.getElementById('is4opCheck').checked;
@@ -706,14 +698,13 @@
                 setStatus(`Loading program ${programNumber}...`);
                 const inst = await synth.getInstrument({ percussive: false, msb: 0, lsb: 0 }, programNumber);
                 populateUIFromInstrument(inst);
-                setStatus(`Loaded program ${programNumber}. Edit and play!`);
+                setStatus(`Program ${programNumber} loaded`);
             } catch (error) {
                 setStatus('Error: ' + error.message);
                 console.error(error);
             }
         }
 
-        // Initialize
         document.getElementById('initBtn').addEventListener('click', async () => {
             try {
                 setStatus('Loading...');
@@ -728,15 +719,14 @@
                     el => el.disabled = false
                 );
 
-                setStatus('Ready! Select a program to edit.');
-                loadPatch(); // Auto-load first patch
+                setStatus('Ready');
+                loadPatch();
             } catch (error) {
                 setStatus('Error: ' + error.message);
                 console.error(error);
             }
         });
 
-        // Bank change
         document.getElementById('bankSelect').addEventListener('change', async (e) => {
             if (!synth) return;
             try {
@@ -747,10 +737,8 @@
             }
         });
 
-        // Program change - auto-load
         document.getElementById('programSelect').addEventListener('change', () => loadPatch());
 
-        // Global param changes
         document.getElementById('is4opCheck').addEventListener('change', () => {
             updateConnectionDiagram();
             if (currentInstrument) {
@@ -791,7 +779,6 @@
             }
         });
 
-        // Keyboard input
         const keyMap = { a: 60, w: 61, s: 62, e: 63, d: 64, f: 65, t: 66, g: 67, y: 68, h: 69, u: 70, j: 71, k: 72 };
         document.addEventListener('keydown', (e) => {
             if (!synth || e.repeat || e.target.tagName === 'INPUT') return;
@@ -810,7 +797,6 @@
             }
         });
 
-        // Init UI
         populateProgramSelect();
         createOperatorUI();
         createKeyboard();

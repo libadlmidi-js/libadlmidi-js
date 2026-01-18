@@ -4,125 +4,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>libADLMIDI-JS Web MIDI Input</title>
+    <title>Web MIDI - libADLMIDI-JS</title>
     <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999;
+            --accent: #4a9;
+            --accent-hover: #5ba;
+            --border: #444;
+        }
+
         * {
             box-sizing: border-box;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            max-width: 900px;
+            max-width: 800px;
             margin: 50px auto;
             padding: 20px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #eee;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
         }
 
         h1 {
-            color: #00d9ff;
-            text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        h3 {
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-top: 0;
+            margin-bottom: 15px;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 24px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
             margin: 20px 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
         }
 
         button {
-            background: linear-gradient(135deg, #00d9ff, #00a8cc);
+            background: var(--accent);
             color: #000;
             border: none;
-            padding: 14px 28px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 4px;
             cursor: pointer;
             margin: 8px 4px 8px 0;
-            transition: all 0.2s;
         }
 
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4);
+            background: var(--accent-hover);
         }
 
         button:disabled {
-            background: #444;
-            color: #888;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
             cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
 
         #status {
-            padding: 14px;
+            padding: 12px;
             margin: 15px 0;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
             font-family: monospace;
+            font-size: 13px;
         }
 
         select {
-            background: rgba(255, 255, 255, 0.1);
-            color: #eee;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
             padding: 10px;
-            border-radius: 6px;
-            min-width: 200px;
+            border-radius: 4px;
+            min-width: 180px;
         }
 
         .midi-device {
             padding: 12px;
             margin: 8px 0;
-            background: rgba(0, 217, 255, 0.1);
-            border-radius: 8px;
-            border-left: 4px solid #00d9ff;
-        }
-
-        .midi-device.connected {
-            border-left-color: #00ff88;
-            background: rgba(0, 255, 136, 0.1);
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent);
         }
 
         .activity {
             display: inline-block;
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            background: #333;
+            background: var(--bg-tertiary);
             margin-right: 10px;
             transition: background 0.1s;
         }
 
         .activity.active {
-            background: #00ff88;
-            box-shadow: 0 0 10px #00ff88;
+            background: var(--accent);
         }
 
         .midi-log {
             font-family: monospace;
             font-size: 12px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
             padding: 12px;
-            max-height: 200px;
+            max-height: 180px;
             overflow-y: auto;
         }
 
         .midi-log-entry {
-            padding: 4px 0;
+            padding: 3px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .info {
-            color: #888;
-            font-size: 14px;
+            color: var(--text-secondary);
+            font-size: 13px;
             margin-top: 15px;
         }
 
@@ -137,39 +145,43 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
         }
 
         .keyboard-hint {
             margin-top: 20px;
             padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border: 1px solid var(--border);
         }
 
         .keyboard-hint kbd {
             display: inline-block;
-            padding: 4px 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
+            padding: 3px 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
             font-family: monospace;
+            font-size: 12px;
             margin: 2px;
         }
     </style>
 </head>
 
 <body>
-    <h1>🎹 Web MIDI → OPL3 Synth</h1>
-    <p>Connect your MIDI keyboard and play with authentic OPL3 FM synthesis!</p>
+    <h1>Web MIDI Input</h1>
+    <p>Connect a MIDI keyboard for OPL3 synthesis</p>
 
-    <div id="status">Status: Not initialized</div>
+    <div id="status">Not initialized</div>
 
     <div class="card">
-        <h3 style="margin-top: 0; color: #00d9ff;">1. Initialize Synth</h3>
-        <button id="initBtn">Initialize OPL3 Synth</button>
+        <h3>1. Initialize Synth</h3>
+        <button id="initBtn">Initialize</button>
 
         <div class="controls" style="margin-top: 15px;">
             <label>
-                Embedded Bank:
+                Bank:
                 <select id="bankSelect" disabled>
                     <option value="0">0 - AIL (Star Control 3)</option>
                     <option value="1">1 - Bisqwit</option>
@@ -181,22 +193,22 @@
     </div>
 
     <div class="card">
-        <h3 style="margin-top: 0; color: #00d9ff;">2. MIDI Devices</h3>
+        <h3>2. MIDI Devices</h3>
         <div id="midiDevices">
-            <p style="color: #888;">Click "Request MIDI Access" to see available devices</p>
+            <p style="color: var(--text-secondary);">Click "Request MIDI Access" to list devices</p>
         </div>
         <button id="midiBtn" disabled>Request MIDI Access</button>
     </div>
 
     <div class="card">
-        <h3 style="margin-top: 0; color: #00d9ff;">3. MIDI Activity</h3>
+        <h3>3. Activity Log</h3>
         <div class="midi-log" id="midiLog">
-            <div style="color: #666;">Waiting for MIDI input...</div>
+            <div style="color: var(--text-secondary);">Waiting for input...</div>
         </div>
     </div>
 
     <div class="keyboard-hint">
-        <strong>No MIDI keyboard?</strong> Use your computer keyboard:<br />
+        <strong>No MIDI keyboard?</strong> Use computer keyboard:<br />
         <div style="margin-top: 10px;">
             <kbd>A</kbd><kbd>W</kbd><kbd>S</kbd><kbd>E</kbd><kbd>D</kbd><kbd>F</kbd><kbd>T</kbd><kbd>G</kbd><kbd>Y</kbd><kbd>H</kbd><kbd>U</kbd><kbd>J</kbd><kbd>K</kbd>
             = C3 to C4
@@ -207,8 +219,7 @@
     </div>
 
     <div class="info">
-        <strong>Note:</strong> Web MIDI requires HTTPS or localhost. Make sure your browser supports it (Chrome, Edge,
-        Opera).
+        Web MIDI requires HTTPS or localhost. Supported in Chrome, Edge, Opera.
     </div>
 
     <script type="module">
@@ -218,7 +229,7 @@
         const activeNotes = new Map();
 
         function setStatus(msg) {
-            document.getElementById('status').textContent = 'Status: ' + msg;
+            document.getElementById('status').textContent = msg;
         }
 
         function logMidi(msg) {
@@ -228,16 +239,14 @@
             entry.textContent = msg;
             log.insertBefore(entry, log.firstChild);
 
-            // Keep only last 50 entries
             while (log.children.length > 50) {
                 log.removeChild(log.lastChild);
             }
         }
 
-        // Initialize synth
         document.getElementById('initBtn').addEventListener('click', async () => {
             try {
-                setStatus('Loading WASM module...');
+                setStatus('Loading...');
 
                 const { AdlMidi } = await import('../dist/libadlmidi.js');
                 synth = new AdlMidi();
@@ -245,13 +254,12 @@
                 setStatus('Initializing AudioWorklet...');
                 await synth.init('../dist/libadlmidi.nuked.processor.js');
 
-                setStatus('Ready! Request MIDI access to connect devices.');
+                setStatus('Ready');
 
                 document.getElementById('initBtn').disabled = true;
                 document.getElementById('midiBtn').disabled = false;
                 document.getElementById('bankSelect').disabled = false;
 
-                // Enable keyboard input
                 setupKeyboard();
 
             } catch (error) {
@@ -260,18 +268,16 @@
             }
         });
 
-        // Bank selection
         document.getElementById('bankSelect').addEventListener('change', async (e) => {
             if (!synth) return;
             try {
                 await synth.setBank(parseInt(e.target.value));
-                setStatus('Bank changed to ' + e.target.value);
+                setStatus('Bank: ' + e.target.value);
             } catch (error) {
-                setStatus('Error setting bank: ' + error.message);
+                setStatus('Error: ' + error.message);
             }
         });
 
-        // MIDI access
         document.getElementById('midiBtn').addEventListener('click', async () => {
             try {
                 setStatus('Requesting MIDI access...');
@@ -279,11 +285,10 @@
 
                 updateMidiDevices();
 
-                // Listen for device changes
                 midiAccess.onstatechange = () => updateMidiDevices();
 
-                setStatus('MIDI connected! Play your keyboard.');
-                document.getElementById('midiBtn').textContent = 'MIDI Connected ✓';
+                setStatus('MIDI connected');
+                document.getElementById('midiBtn').textContent = 'Connected';
                 document.getElementById('midiBtn').disabled = true;
 
             } catch (error) {
@@ -297,17 +302,16 @@
             container.innerHTML = '';
 
             if (midiAccess.inputs.size === 0) {
-                container.innerHTML = '<p style="color: #888;">No MIDI input devices found</p>';
+                container.innerHTML = '<p style="color: var(--text-secondary);">No MIDI input devices found</p>';
                 return;
             }
 
             for (const [id, input] of midiAccess.inputs) {
                 const div = document.createElement('div');
-                div.className = 'midi-device connected';
+                div.className = 'midi-device';
                 div.innerHTML = `<span class="activity" id="activity-${id}"></span>${input.name} (${input.manufacturer || 'Unknown'})`;
                 container.appendChild(div);
 
-                // Attach MIDI handler
                 input.onmidimessage = (event) => handleMidiMessage(event, id);
             }
         }
@@ -317,7 +321,6 @@
             const command = status >> 4;
             const channel = status & 0x0F;
 
-            // Flash activity indicator
             const activity = document.getElementById(`activity-${deviceId}`);
             if (activity) {
                 activity.classList.add('active');
@@ -325,7 +328,7 @@
             }
 
             switch (command) {
-                case 0x9: // Note On
+                case 0x9:
                     if (data2 > 0) {
                         synth.noteOn(channel, data1, data2);
                         logMidi(`Note ON: ch=${channel} note=${data1} vel=${data2}`);
@@ -335,22 +338,22 @@
                     }
                     break;
 
-                case 0x8: // Note Off
+                case 0x8:
                     synth.noteOff(channel, data1);
                     logMidi(`Note OFF: ch=${channel} note=${data1}`);
                     break;
 
-                case 0xB: // Control Change
+                case 0xB:
                     synth.controlChange(channel, data1, data2);
                     logMidi(`CC: ch=${channel} cc=${data1} val=${data2}`);
                     break;
 
-                case 0xC: // Program Change
+                case 0xC:
                     synth.programChange(channel, data1);
                     logMidi(`Program: ch=${channel} prog=${data1}`);
                     break;
 
-                case 0xE: // Pitch Bend
+                case 0xE:
                     const bendValue = data1 | (data2 << 7);
                     synth.pitchBend(channel, bendValue);
                     logMidi(`Pitch Bend: ch=${channel} val=${bendValue}`);
@@ -361,7 +364,6 @@
             }
         }
 
-        // Computer keyboard support
         function setupKeyboard() {
             const keyMap = {
                 'a': 0, 'w': 1, 's': 2, 'e': 3, 'd': 4, 'f': 5,

@@ -4,19 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>libADLMIDI-JS Test</title>
+    <title>Keyboard - libADLMIDI-JS</title>
     <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999;
+            --accent: #4a9;
+            --accent-hover: #5ba;
+            --border: #444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             max-width: 800px;
             margin: 50px auto;
             padding: 20px;
-            background: #1a1a2e;
-            color: #eee;
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
 
         h1 {
-            color: #00d9ff;
+            color: var(--text-primary);
+            font-weight: 500;
         }
 
         .keyboard {
@@ -43,7 +59,7 @@
 
         .key:active,
         .key.active {
-            background: linear-gradient(to bottom, #00d9ff 0%, #00a8cc 100%);
+            background: linear-gradient(to bottom, #8cf 0%, #6ad 100%);
         }
 
         .key.black {
@@ -57,64 +73,83 @@
 
         .key.black:active,
         .key.black.active {
-            background: linear-gradient(to bottom, #0088aa 0%, #005566 100%);
+            background: linear-gradient(to bottom, #456 0%, #234 100%);
         }
 
         button {
-            background: #00d9ff;
+            background: var(--accent);
             color: #000;
             border: none;
             padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 4px;
             cursor: pointer;
             margin: 10px 5px 10px 0;
         }
 
         button:hover {
-            background: #00f7ff;
+            background: var(--accent-hover);
         }
 
         button:disabled {
-            background: #555;
-            color: #888;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
             cursor: not-allowed;
         }
 
         #status {
-            padding: 10px;
+            padding: 10px 12px;
             margin: 20px 0;
-            background: #2a2a4e;
-            border-radius: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
         }
 
         select {
-            background: #2a2a4e;
-            color: #eee;
-            border: 1px solid #444;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
             padding: 8px;
             border-radius: 4px;
             margin: 5px;
+        }
+
+        label {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .controls {
+            margin: 15px 0;
+        }
+
+        h3 {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 14px;
+            margin-top: 30px;
         }
     </style>
 </head>
 
 <body>
-    <h1>🎹 libADLMIDI-JS Test</h1>
-    <p>OPL3 FM Synthesis in the browser via WebAssembly</p>
+    <h1>libADLMIDI-JS Keyboard</h1>
+    <p>OPL3 synthesis via WebAssembly AudioWorklet</p>
 
-    <div id="status">Status: Not initialized</div>
+    <div id="status">Not initialized</div>
 
-    <button id="initBtn">Initialize Synth</button>
-    <button id="panicBtn" disabled>Panic (Stop All)</button>
+    <button id="initBtn">Initialize</button>
+    <button id="panicBtn" disabled>Panic</button>
 
-    <div>
+    <div class="controls">
         <label>Bank:
             <select id="bankSelect" disabled>
-                <option value="0">Bank 0 - AIL (Star Control 3)</option>
-                <option value="1">Bank 1 - Bisqwit</option>
-                <option value="5">Bank 5 - Apogee IMF 90</option>
-                <option value="72" selected>Bank 72 - TMB (Duke 3D)</option>
+                <option value="0">0 - AIL (Star Control 3)</option>
+                <option value="1">1 - Bisqwit</option>
+                <option value="5">5 - Apogee IMF 90</option>
+                <option value="72" selected>72 - TMB (Duke 3D)</option>
             </select>
         </label>
         <label>Channel:
@@ -135,13 +170,10 @@
         </label>
     </div>
 
-    <h3>Piano Keyboard (click or use keys Z-M, A-K)</h3>
+    <h3>Click keys or use keyboard (Z-M, A-K)</h3>
     <div class="keyboard" id="keyboard"></div>
 
     <script type="module">
-        // Note: This test uses the raw WASM glue, not the bundled processor
-        // because AudioWorklet bundling is complex
-
         let synth = null;
         let currentChannel = 0;
 
@@ -175,7 +207,6 @@
         const keyboard = document.getElementById('keyboard');
         const keyMap = new Map();
 
-        // Build keyboard UI
         notes.forEach(({ note, key, label, black }) => {
             const keyEl = document.createElement('div');
             keyEl.className = 'key' + (black ? ' black' : '');
@@ -202,7 +233,6 @@
             }
         }
 
-        // Keyboard input
         document.addEventListener('keydown', (e) => {
             if (e.repeat) return;
             const keyEl = keyMap.get(e.key.toLowerCase());
@@ -218,27 +248,21 @@
             }
         });
 
-        // Status update
         function setStatus(msg) {
-            document.getElementById('status').textContent = 'Status: ' + msg;
+            document.getElementById('status').textContent = msg;
         }
 
-        // Initialize button
         document.getElementById('initBtn').addEventListener('click', async () => {
             try {
-                setStatus('Loading WASM module...');
-
-                // Import from the nuked profile wrapper (handles WASM loading)
+                setStatus('Loading...');
                 const { AdlMidi } = await import('../src/profiles/nuked.js');
                 synth = new AdlMidi();
 
                 setStatus('Initializing AudioWorklet...');
                 await synth.init();
 
-                // Expose for testing
                 window.synth = synth;
-
-                setStatus('Ready! Click keys or use keyboard (Z-M, Q-U)');
+                setStatus('Ready');
 
                 document.getElementById('initBtn').disabled = true;
                 document.getElementById('panicBtn').disabled = false;
@@ -252,37 +276,33 @@
             }
         });
 
-        // Panic button
         document.getElementById('panicBtn').addEventListener('click', () => {
             if (synth) {
                 synth.panic();
-                setStatus('Panic - all notes stopped');
+                setStatus('All notes stopped');
             }
         });
 
-        // Bank selection
         document.getElementById('bankSelect').addEventListener('change', async (e) => {
             if (synth) {
                 try {
                     await synth.setBank(parseInt(e.target.value));
-                    setStatus('Bank changed to ' + e.target.value);
+                    setStatus('Bank: ' + e.target.value);
                 } catch (error) {
-                    setStatus('Error setting bank: ' + error.message);
+                    setStatus('Error: ' + error.message);
                 }
             }
         });
 
-        // Channel selection
         document.getElementById('channelSelect').addEventListener('change', (e) => {
             currentChannel = parseInt(e.target.value);
             setStatus('Channel: ' + currentChannel);
         });
 
-        // Program change
         document.getElementById('programSelect').addEventListener('change', (e) => {
             if (synth) {
                 synth.programChange(currentChannel, parseInt(e.target.value));
-                setStatus('Program changed to ' + e.target.value);
+                setStatus('Program: ' + e.target.value);
             }
         });
     </script>

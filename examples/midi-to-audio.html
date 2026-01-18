@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI to WAV - libADLMIDI-JS</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999;
+            --accent: #4a9;
+            --accent-hover: #5ba;
+            --border: #444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid var(--border);
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: border-color 0.2s, background 0.2s;
+            cursor: pointer;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(68, 170, 153, 0.05);
+        }
+
+        .drop-zone input {
+            display: none;
+        }
+
+        button {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 8px 4px 8px 0;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        button:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        #status {
+            padding: 12px;
+            margin: 15px 0;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .progress-container {
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .file-name {
+            color: var(--accent);
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .info {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .download-section {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .download-section.visible {
+            display: block;
+        }
+
+        .file-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .file-info-item {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .file-info-item .label {
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .file-info-item .value {
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>MIDI to WAV Converter</h1>
+    <p>Convert MIDI files to WAV using OPL3 FM synthesis</p>
+
+    <div id="status">Loading...</div>
+
+    <div class="card">
+        <div class="drop-zone" id="dropZone">
+            <p style="font-size: 16px; margin: 0;">Drop MIDI file here or click to browse</p>
+            <p style="color: var(--text-secondary); margin: 10px 0 0; font-size: 13px;">.mid, .midi, .xmi, .mus</p>
+            <input type="file" id="fileInput" accept=".mid,.midi,.xmi,.mus,.imf">
+            <div class="file-name" id="fileName"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="controls">
+            <label>
+                Bank:
+                <select id="bankSelect">
+                    <option value="0">0 - AIL (Star Control 3)</option>
+                    <option value="1">1 - Bisqwit</option>
+                    <option value="5">5 - Apogee IMF 90</option>
+                    <option value="68">68 - SB FMSynth</option>
+                    <option value="72" selected>72 - TMB (Duke 3D)</option>
+                </select>
+            </label>
+            <button id="convertBtn" disabled>Convert to WAV</button>
+        </div>
+
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progressPercent">0%</span>
+                <span id="progressTime">--:-- / --:--</span>
+            </div>
+        </div>
+
+        <div class="download-section" id="downloadSection">
+            <div class="file-info">
+                <div class="file-info-item">
+                    <div class="label">Duration</div>
+                    <div class="value" id="infoDuration">--:--</div>
+                </div>
+                <div class="file-info-item">
+                    <div class="label">File Size</div>
+                    <div class="value" id="infoSize">-- MB</div>
+                </div>
+                <div class="file-info-item">
+                    <div class="label">Render Time</div>
+                    <div class="value" id="infoTime">-- sec</div>
+                </div>
+            </div>
+
+            <audio id="audioPreview" controls></audio>
+
+            <button id="downloadBtn">Download WAV</button>
+        </div>
+    </div>
+
+    <div class="info">
+        Different banks produce different instrument sounds. Try DMX banks for Doom-era games, AIL for 90s Windows
+        games.
+    </div>
+
+    <script type="module">
+        let synth = null;
+        let midiData = null;
+        let midiFileName = '';
+        let wavBlob = null;
+        let wavUrl = null;
+
+        function setStatus(msg) {
+            document.getElementById('status').textContent = msg;
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function generateWav(samples, sampleRate) {
+            const numChannels = 2;
+            const bytesPerSample = 2;
+            const numFrames = samples.length / 2;
+            const dataSize = numFrames * numChannels * bytesPerSample;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            const writeString = (offset, str) => {
+                for (let i = 0; i < str.length; i++) {
+                    view.setUint8(offset + i, str.charCodeAt(i));
+                }
+            };
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(8, 'WAVE');
+
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
+            view.setUint16(32, numChannels * bytesPerSample, true);
+            view.setUint16(34, bytesPerSample * 8, true);
+
+            writeString(36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            const int16View = new Int16Array(buffer, 44);
+            for (let i = 0; i < samples.length; i++) {
+                int16View[i] = Math.max(-32768, Math.min(32767, samples[i] * 32767));
+            }
+
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
+        async function initSynth() {
+            try {
+                const { AdlMidiCore } = await import('../src/profiles/nuked.js');
+                synth = await AdlMidiCore.create();
+                synth.init(44100);
+                synth.setBank(72);
+                setStatus('Ready');
+            } catch (error) {
+                setStatus('Error: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        initSynth();
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                loadFile(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                loadFile(fileInput.files[0]);
+            }
+        });
+
+        async function loadFile(file) {
+            if (!synth) {
+                setStatus('Synth not ready');
+                return;
+            }
+
+            midiFileName = file.name.replace(/\.[^.]+$/, '');
+            document.getElementById('fileName').textContent = file.name;
+
+            try {
+                midiData = await file.arrayBuffer();
+
+                if (!synth.loadMidi(midiData)) {
+                    setStatus('Failed to load MIDI');
+                    return;
+                }
+
+                const duration = synth.duration;
+                const estimatedSize = duration * 44100 * 2 * 2;
+
+                setStatus(`Loaded: ${file.name} (${formatTime(duration)}, ~${formatSize(estimatedSize)})`);
+                document.getElementById('convertBtn').disabled = false;
+
+                document.getElementById('downloadSection').classList.remove('visible');
+
+            } catch (error) {
+                setStatus('Error: ' + error.message);
+            }
+        }
+
+        document.getElementById('bankSelect').addEventListener('change', (e) => {
+            if (synth) {
+                synth.setBank(parseInt(e.target.value));
+                setStatus('Bank: ' + e.target.value);
+            }
+        });
+
+        document.getElementById('convertBtn').addEventListener('click', async () => {
+            if (!synth || !midiData) return;
+
+            const convertBtn = document.getElementById('convertBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progress');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressTime = document.getElementById('progressTime');
+
+            convertBtn.disabled = true;
+            progressContainer.style.display = 'block';
+
+            synth.loadMidi(midiData);
+            synth.setBank(parseInt(document.getElementById('bankSelect').value));
+
+            const duration = synth.duration;
+            const sampleRate = 44100;
+            const totalFrames = Math.ceil(duration * sampleRate);
+            const chunkSize = 4096;
+
+            const allSamples = new Float32Array(totalFrames * 2);
+            let samplesWritten = 0;
+
+            const startTime = performance.now();
+
+            setStatus('Converting...');
+
+            const renderChunk = () => {
+                const chunkStart = performance.now();
+
+                while (!synth.atEnd && (performance.now() - chunkStart) < 16) {
+                    const remaining = totalFrames - (samplesWritten / 2);
+                    const framesToRender = Math.min(chunkSize, remaining);
+
+                    if (framesToRender <= 0) break;
+
+                    const samples = synth.play(framesToRender);
+                    allSamples.set(samples, samplesWritten);
+                    samplesWritten += samples.length;
+                }
+
+                const progress = samplesWritten / (totalFrames * 2);
+                const currentTime = (samplesWritten / 2) / sampleRate;
+
+                progressFill.style.width = (progress * 100) + '%';
+                progressPercent.textContent = Math.round(progress * 100) + '%';
+                progressTime.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+
+                if (!synth.atEnd && samplesWritten < totalFrames * 2) {
+                    requestAnimationFrame(renderChunk);
+                } else {
+                    const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+
+                    const finalSamples = allSamples.slice(0, samplesWritten);
+                    wavBlob = generateWav(finalSamples, sampleRate);
+
+                    if (wavUrl) URL.revokeObjectURL(wavUrl);
+                    wavUrl = URL.createObjectURL(wavBlob);
+
+                    document.getElementById('infoDuration').textContent = formatTime(duration);
+                    document.getElementById('infoSize').textContent = formatSize(wavBlob.size);
+                    document.getElementById('infoTime').textContent = elapsed + ' sec';
+
+                    document.getElementById('audioPreview').src = wavUrl;
+                    document.getElementById('downloadSection').classList.add('visible');
+
+                    progressContainer.style.display = 'none';
+                    convertBtn.disabled = false;
+
+                    setStatus(`Done: ${formatTime(duration)} in ${elapsed}s`);
+                }
+            };
+
+            requestAnimationFrame(renderChunk);
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            if (!wavUrl) return;
+
+            const a = document.createElement('a');
+            a.href = wavUrl;
+            a.download = midiFileName + '.wav';
+            a.click();
+        });
+    </script>
+</body>
+
+</html>
