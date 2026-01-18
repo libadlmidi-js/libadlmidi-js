@@ -57,12 +57,8 @@ jobs:
           # Copy dist files to docs
           cp -r dist docs/dist
           
-          # Copy examples and update paths
-          for file in examples/*.html; do
-            filename=$(basename "$file")
-            # Update relative paths: ../dist/ -> /dist/ (org pages use root URL)
-            sed 's|\.\./dist/|/dist/|g' "$file" > "docs/examples/$filename"
-          done
+          # Copy examples (relative paths work since structure mirrors source)
+          cp examples/*.html docs/examples/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
