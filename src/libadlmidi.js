@@ -497,7 +497,7 @@ export class AdlMidi {
             this.node.disconnect();
             this.node = null;
         }
-        this._ready = false;
+        this.#ready = false;
     }
 
     /**
