@@ -21,7 +21,7 @@ jobs:
             wasm:
               - 'libADLMIDI/**'
               - 'build.sh'
-              - 'scripts/build-*.js'
+              - 'scripts/build-*'
               - '.gitmodules'
 
   lint:
