@@ -28,8 +28,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .ccache/
+          key: ccache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
       - name: Build WASM with Docker
         run: ./build.sh all
+
+      - name: Save ccache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .ccache/
+          key: ccache-${{ runner.os }}-${{ github.sha }}
 
       - name: Build JS bundles
         run: npm run build:js
