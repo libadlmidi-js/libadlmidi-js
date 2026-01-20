@@ -287,7 +287,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 break;
 
             case 'pitchBend':
-                this.adl._adl_rt_pitchBendML(this.midi, msg.channel, msg.lsb, msg.msb);
+                this.adl._adl_rt_pitchBendML(this.midi, msg.channel, msg.msb, msg.lsb);
                 break;
 
             case 'controlChange':

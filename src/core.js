@@ -11,6 +11,7 @@
 import {
     SIZEOF_ADL_INSTRUMENT,
     SIZEOF_ADL_BANK_ID,
+    SIZEOF_ADL_BANK,
     decodeInstrument,
     encodeInstrument,
 } from './utils/struct.js';
@@ -692,24 +693,34 @@ export class AdlMidiCore {
         this._module.HEAPU8[bankIdPtr + 1] = bankId.msb || 0;
         this._module.HEAPU8[bankIdPtr + 2] = bankId.lsb || 0;
 
-        // Allocate instrument struct
-        const instPtr = this._module._malloc(SIZEOF_ADL_INSTRUMENT);
+        // Allocate bank struct
+        const bankPtr = this._module._malloc(SIZEOF_ADL_BANK);
 
-        const result = this._module._adl_getInstrument(
-            this._player,
-            bankIdPtr,
-            program,
-            instPtr
-        );
+        // Get bank (create if needed)
+        const bankResult = this._module._adl_getBank(this._player, bankIdPtr, 1, bankPtr);
 
         let instrument = null;
-        if (result === 0) {
-            const bytes = this._module.HEAPU8.slice(instPtr, instPtr + SIZEOF_ADL_INSTRUMENT);
-            instrument = decodeInstrument(bytes);
+        if (bankResult === 0) {
+            // Allocate instrument struct
+            const instPtr = this._module._malloc(SIZEOF_ADL_INSTRUMENT);
+
+            const result = this._module._adl_getInstrument(
+                this._player,
+                bankPtr,
+                program,
+                instPtr
+            );
+
+            if (result === 0) {
+                const bytes = this._module.HEAPU8.slice(instPtr, instPtr + SIZEOF_ADL_INSTRUMENT);
+                instrument = decodeInstrument(bytes);
+            }
+
+            this._module._free(instPtr);
         }
 
         this._module._free(bankIdPtr);
-        this._module._free(instPtr);
+        this._module._free(bankPtr);
 
         return instrument;
     }
@@ -734,22 +745,34 @@ export class AdlMidiCore {
         this._module.HEAPU8[bankIdPtr + 1] = bankId.msb || 0;
         this._module.HEAPU8[bankIdPtr + 2] = bankId.lsb || 0;
 
-        // Encode and write instrument
-        const bytes = encodeInstrument(instrument);
-        const instPtr = this._module._malloc(SIZEOF_ADL_INSTRUMENT);
-        this._module.HEAPU8.set(bytes, instPtr);
+        // Allocate bank struct
+        const bankPtr = this._module._malloc(SIZEOF_ADL_BANK);
 
-        const result = this._module._adl_setInstrument(
-            this._player,
-            bankIdPtr,
-            program,
-            instPtr
-        );
+        // Get bank (create if needed)
+        const bankResult = this._module._adl_getBank(this._player, bankIdPtr, 1, bankPtr);
+
+        let success = false;
+        if (bankResult === 0) {
+            // Encode and write instrument
+            const bytes = encodeInstrument(instrument);
+            const instPtr = this._module._malloc(SIZEOF_ADL_INSTRUMENT);
+            this._module.HEAPU8.set(bytes, instPtr);
+
+            const result = this._module._adl_setInstrument(
+                this._player,
+                bankPtr,
+                program,
+                instPtr
+            );
+
+            success = result === 0;
+            this._module._free(instPtr);
+        }
 
         this._module._free(bankIdPtr);
-        this._module._free(instPtr);
+        this._module._free(bankPtr);
 
-        return result === 0;
+        return success;
     }
 
     // =========================================================================

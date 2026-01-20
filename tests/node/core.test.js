@@ -165,6 +165,31 @@ describe('AdlMidiCore Configuration', () => {
         synth.setChannelAllocMode(1); // ADLMIDI_ChanAlloc_OffDelay
         expect(synth.getChannelAllocMode()).toBe(1);
     });
+
+    it('should get and set instrument safely', () => {
+        const bankId = { percussive: 0, msb: 0, lsb: 0 };
+        const program = 0;
+
+        // 1. Get initial instrument
+        const originalInst = synth.getInstrument(bankId, program);
+        expect(originalInst).toBeDefined();
+        expect(originalInst.version).toBeDefined();
+        
+        // 2. Modify it
+        const modifiedInst = { ...originalInst };
+        if (modifiedInst.operators && modifiedInst.operators[0]) {
+             modifiedInst.operators[0].attack = (modifiedInst.operators[0].attack + 5) % 16;
+        }
+
+        // 3. Set it back (verify it returns true/success)
+        const result = synth.setInstrument(bankId, program, modifiedInst);
+        expect(result).toBe(true);
+
+        // 4. Get it again (verify no crash and structure is valid)
+        const retrievedInst = synth.getInstrument(bankId, program);
+        expect(retrievedInst).toBeDefined();
+        expect(retrievedInst.operators).toBeDefined();
+    });
 });
 
 describe('AdlMidiCore Real-time Synthesis', () => {
