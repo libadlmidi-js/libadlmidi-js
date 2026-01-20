@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -61,12 +62,24 @@ jobs:
           fi
           echo "Version verified: $PKG_VERSION"
 
+      - name: Get tag message
+        id: tag_message
+        run: |
+          git fetch --tags --force
+          TAG_MSG=$(git tag -l --format='%(contents)' "${{ github.ref_name }}")
+          {
+            echo "message<<EOF"
+            echo "$TAG_MSG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Publish to npm
         run: npm publish --provenance --access public
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          body: ${{ steps.tag_message.outputs.message }}
           generate_release_notes: true
           draft: false
         env:
