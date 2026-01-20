@@ -51,10 +51,10 @@ docker run --rm \
             
             # Switch to builder user and run the internal script
             # Pass arguments through
-            su \"\$BUILD_USER\" -c 'source /emsdk/emsdk_env.sh && ./scripts/build-docker-inner.sh \"\$1\" \"\$2\"' -- \"\$1\" \"\$2\"
+            su \"\$BUILD_USER\" -c '. /emsdk/emsdk_env.sh && ./scripts/build-docker-inner.sh \"\$1\" \"\$2\"' -- \"\$1\" \"\$2\"
         else
             # Running as root (e.g. in some CI envs)
-            source /emsdk/emsdk_env.sh
+            . /emsdk/emsdk_env.sh
             ./scripts/build-docker-inner.sh \"\$1\" \"\$2\"
         fi
     " -- "$1" "$2"
