@@ -67,6 +67,7 @@ jobs:
           path: |
             build-*/
             dist/
+            .ccache/
           key: wasm-build-${{ github.sha }}
           restore-keys: |
             wasm-build-${{ github.event.pull_request.base.sha }}
@@ -86,6 +87,7 @@ jobs:
           path: |
             build-*/
             dist/
+            .ccache/
           key: wasm-build-${{ github.sha }}
 
   # Always run JS build, using WASM from wasm-build job

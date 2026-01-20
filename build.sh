@@ -2,15 +2,7 @@
 set -e
 
 # libADLMIDI-JS Build Script
-# Uses Docker emscripten/emsdk for WASM compilation
-#
-# Produces two outputs per profile:
-# 1. Bundled (.js) - WASM embedded as base64, for AudioWorklet
-# 2. Split (.core.js + .wasm) - Separate files, for general use
-#
-# Each profile can be built with or without embedded banks:
-# - With banks: ~412KB
-# - Slim (no banks): ~105KB
+# Uses Docker emscripten/emsdk for WASM compilation with ccache support
 
 # Initialize submodule if not already done
 if [ ! -d "libADLMIDI/.git" ] && [ ! -f "libADLMIDI/.git" ]; then
@@ -18,137 +10,53 @@ if [ ! -d "libADLMIDI/.git" ] && [ ! -f "libADLMIDI/.git" ]; then
     git submodule update --init --recursive libADLMIDI
 fi
 
-# Define export settings
-EMCC_EXPORT_FUNCS="['_adl_init','_adl_close','_adl_generate','_adl_generateFormat','_adl_play','_adl_playFormat','_adl_rt_noteOn','_adl_rt_noteOff','_adl_rt_pitchBend','_adl_rt_pitchBendML','_adl_rt_controllerChange','_adl_rt_patchChange','_adl_rt_resetState','_adl_panic','_adl_openData','_adl_openBankData','_adl_openBankFile','_adl_setBank','_adl_getBanksCount','_adl_getBankNames','_adl_reset','_adl_setNumChips','_adl_setNumFourOpsChn','_adl_getNumFourOpsChn','_adl_setVolumeRangeModel','_adl_switchEmulator','_adl_chipEmulatorName','_adl_setLoopEnabled','_adl_setLoopCount','_adl_setPercMode','_adl_setHVibrato','_adl_setHTremolo','_adl_setScaleModulators','_adl_setFullRangeBrightness','_adl_setAutoArpeggio','_adl_getAutoArpeggio','_adl_setChannelAllocMode','_adl_getChannelAllocMode','_adl_setSoftPanEnabled','_adl_setTempo','_adl_totalTimeLength','_adl_positionTell','_adl_positionSeek','_adl_positionRewind','_adl_atEnd','_adl_errorString','_adl_errorInfo','_adl_getBank','_adl_getInstrument','_adl_setInstrument','_adl_loadEmbeddedBank','_adl_reserveBanks','_adl_getNumChips','_adl_getNumChipsObtained','_adl_getVolumeRangeModel','_adl_setRunAtPcmRate','_adl_rt_bankChange','_adl_rt_bankChangeMSB','_adl_rt_bankChangeLSB','_adl_rt_noteAfterTouch','_adl_rt_channelAfterTouch','_malloc','_free']"
+# Ensure ccache dir exists on host so it persists
+mkdir -p .ccache
 
-EMCC_RUNTIME_METHODS="['ccall','cwrap','getValue','setValue','HEAP8','HEAP16','HEAP32','HEAPU8','HEAPU16','HEAPU32','UTF8ToString']"
+echo ">>> Starting Docker build container..."
 
-# Emulator profiles: "Name | CMake flags"
-EMULATOR_PROFILES=(
-    "nuked|-DUSE_NUKED_EMULATOR=ON -DUSE_DOSBOX_EMULATOR=OFF -DUSE_OPAL_EMULATOR=OFF -DUSE_JAVA_EMULATOR=OFF -DUSE_ESFMU_EMULATOR=OFF -DUSE_MAME_EMULATOR=OFF -DUSE_YMFM_EMULATOR=OFF"
-    "dosbox|-DUSE_NUKED_EMULATOR=OFF -DUSE_DOSBOX_EMULATOR=ON -DUSE_OPAL_EMULATOR=OFF -DUSE_JAVA_EMULATOR=OFF -DUSE_ESFMU_EMULATOR=OFF -DUSE_MAME_EMULATOR=OFF -DUSE_YMFM_EMULATOR=OFF"
-    "light|-DUSE_NUKED_EMULATOR=ON -DUSE_DOSBOX_EMULATOR=ON -DUSE_OPAL_EMULATOR=OFF -DUSE_JAVA_EMULATOR=OFF -DUSE_ESFMU_EMULATOR=OFF -DUSE_MAME_EMULATOR=OFF -DUSE_YMFM_EMULATOR=OFF"
-    "full|-DUSE_NUKED_EMULATOR=ON -DUSE_DOSBOX_EMULATOR=ON -DUSE_OPAL_EMULATOR=ON -DUSE_JAVA_EMULATOR=ON -DUSE_ESFMU_EMULATOR=ON -DUSE_MAME_EMULATOR=ON -DUSE_YMFM_EMULATOR=ON"
-)
+# Capture host UID/GID to use inside container
+HOST_UID=$(id -u)
+HOST_GID=$(id -g)
 
-BUILD_ARG="$1"
-SLIM_ARG="$2" # Optional: "slim" for no-banks build
-
-build_profile() {
-    local EMU_NAME=$1
-    local EMU_FLAGS=$2
-    local WITH_BANKS=$3 # "ON" or "OFF"
-
-    local SUFFIX=""
-    local BANKS_FLAG="-DWITH_EMBEDDED_BANKS=ON"
-    if [ "$WITH_BANKS" = "OFF" ]; then
-        SUFFIX=".slim"
-        BANKS_FLAG="-DWITH_EMBEDDED_BANKS=OFF"
-    fi
-
-    local OUTPUT_NAME="${EMU_NAME}${SUFFIX}"
-    local BUILD_DIR="build-${OUTPUT_NAME}"
-
-    echo ">>> Building: $OUTPUT_NAME (banks=$WITH_BANKS)"
-
-    mkdir -p "$BUILD_DIR"
-    mkdir -p dist
-
-    docker run --rm \
-        -u "$(id -u):$(id -g)" \
-        -v "$(pwd)":/src \
-        -w /src/"$BUILD_DIR" \
-        emscripten/emsdk:latest \
-        bash -c "
+# We run as root initially to install ccache, then switch to user
+# Note: we pass user ID/GID to create a matching user inside container
+docker run --rm \
+    -v "$(pwd)":/src \
+    -w /src \
+    emscripten/emsdk:latest \
+    bash -c "
         set -e
-        
-        if [ ! -f Makefile ]; then
-            echo '>>> Configuring with emcmake...'
-            emcmake cmake ../libADLMIDI \
-              -DCMAKE_BUILD_TYPE=MinSizeRel \\
-              -DlibADLMIDI_SHARED=OFF \
-              -DlibADLMIDI_STATIC=ON \
-              -DWITH_MIDI_SEQUENCER=ON \
-              $BANKS_FLAG \
-              $EMU_FLAGS
-        fi
-        
-        echo '>>> Building with emmake...'
-        emmake make -j\$(nproc)
-        
-        EXPORTS=\"$EMCC_EXPORT_FUNCS\"
-        RUNTIME=\"$EMCC_RUNTIME_METHODS\"
-        
-        echo '>>> Linking BUNDLED version...'
-        emcc -Oz -flto -s WASM=1 -s SINGLE_FILE=1 -s BINARYEN_ASYNC_COMPILATION=0 \
-          -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s EXPORT_ES6=1 \
-          -s ENVIRONMENT=web,worker -s TEXTDECODER=1 \
-          -s EXPORT_NAME=createADLMIDI \
-          -s EXPORTED_FUNCTIONS=\"\$EXPORTS\" \
-          -s EXPORTED_RUNTIME_METHODS=\"\$RUNTIME\" \
-          libADLMIDI.a -o ../dist/libadlmidi.$OUTPUT_NAME.js
-        
-        echo '>>> Linking SPLIT version (browser-only, for processor bundles)...'
-        emcc -Oz -flto -s WASM=1 -s SINGLE_FILE=0 \
-          -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s EXPORT_ES6=1 \
-          -s ENVIRONMENT=web,worker -s TEXTDECODER=1 \
-          -s EXPORT_NAME=createADLMIDI \
-          -s EXPORTED_FUNCTIONS=\"\$EXPORTS\" \
-          -s EXPORTED_RUNTIME_METHODS=\"\$RUNTIME\" \
-          libADLMIDI.a -o ../dist/libadlmidi.$OUTPUT_NAME.browser.js
-        
-        echo '>>> Linking SPLIT version (with Node support, for AdlMidiCore)...'
-        emcc -Oz -flto -s WASM=1 -s SINGLE_FILE=0 \
-          -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s EXPORT_ES6=1 \
-          -s ENVIRONMENT=web,worker,node \
-          -s EXPORT_NAME=createADLMIDI \
-          -s EXPORTED_FUNCTIONS=\"\$EXPORTS\" \
-          -s EXPORTED_RUNTIME_METHODS=\"\$RUNTIME\" \
-          libADLMIDI.a -o ../dist/libadlmidi.$OUTPUT_NAME.core.js
-      "
+        echo '>>> Installing ccache...'
+        apt-get update -qq && apt-get install -yqq ccache
 
-    echo ">>> Built $OUTPUT_NAME:"
-    echo "    Bundled:       dist/libadlmidi.$OUTPUT_NAME.js"
-    echo "    Split-Browser: dist/libadlmidi.$OUTPUT_NAME.browser.js + .wasm"
-    echo "    Split-Node:    dist/libadlmidi.$OUTPUT_NAME.core.js + .wasm"
-}
-
-# Create dist directory
-mkdir -p dist
-
-# Parse arguments
-if [ "$BUILD_ARG" = "all" ]; then
-    # Build all profiles, both with and without banks
-    for profile in "${EMULATOR_PROFILES[@]}"; do
-        IFS="|" read -r name flags <<<"$profile"
-        build_profile "$name" "$flags" "ON"
-        build_profile "$name" "$flags" "OFF"
-    done
-elif [ -n "$BUILD_ARG" ]; then
-    # Build specific profile
-    for profile in "${EMULATOR_PROFILES[@]}"; do
-        IFS="|" read -r name flags <<<"$profile"
-        if [ "$name" == "$BUILD_ARG" ]; then
-            if [ "$SLIM_ARG" = "slim" ]; then
-                build_profile "$name" "$flags" "OFF"
+        # Determine user to run as
+        if [ \"$HOST_UID\" -ne 0 ]; then
+            # Check if user with this UID already exists
+            if getent passwd \"$HOST_UID\" >/dev/null; then
+                BUILD_USER=\$(getent passwd \"$HOST_UID\" | cut -d: -f1)
+                echo \">>> Using existing user: \$BUILD_USER (UID $HOST_UID)\"
             else
-                build_profile "$name" "$flags" "ON"
-                build_profile "$name" "$flags" "OFF"
+                echo \">>> Creating new user for UID $HOST_UID...\"
+                # Ensure group exists
+                if ! getent group \"$HOST_GID\" >/dev/null; then
+                    groupadd -g \"$HOST_GID\" builder
+                fi
+                
+                # Create user 'builder'
+                # We use the existing group ID (either pre-existing or just created)
+                useradd -u \"$HOST_UID\" -g \"$HOST_GID\" -m builder
+                BUILD_USER=builder
             fi
-            exit 0
+            
+            # Switch to builder user and run the internal script
+            # Pass arguments through
+            su \"\$BUILD_USER\" -c 'source /emsdk/emsdk_env.sh && ./scripts/build-docker-inner.sh \"\$1\" \"\$2\"' -- \"\$1\" \"\$2\"
+        else
+            # Running as root (e.g. in some CI envs)
+            source /emsdk/emsdk_env.sh
+            ./scripts/build-docker-inner.sh \"\$1\" \"\$2\"
         fi
-    done
-    echo "Profile '$BUILD_ARG' not found!"
-    echo "Available profiles: nuked, dosbox, light, full"
-    echo "Usage: ./build.sh <profile> [slim]"
-    exit 1
-else
-    echo "Usage: ./build.sh <profile> [slim]"
-    echo "       ./build.sh all"
-    echo ""
-    echo "Profiles: nuked, dosbox, light, full"
-    echo "Options:  slim - build only the no-banks version"
-    exit 1
-fi
+    " -- "$1" "$2"
 
 echo ">>> Build complete!"

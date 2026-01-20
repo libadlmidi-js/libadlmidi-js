@@ -4,6 +4,7 @@ node_modules/
 # Build artifacts
 dist/
 build-*/
+.ccache/
 
 # Test artifacts
 test-results/

@@ -1,7 +1,7 @@
 /**
- * Validates that package.json exports match the profiles defined in build.sh
- * 
- * build.sh is the single source of truth for profile definitions.
+ * Validates that package.json exports match the profiles defined in the build scripts
+ *
+ * scripts/build-docker-inner.sh is the single source of truth for profile definitions.
  * This test ensures package.json stays in sync.
  */
 
@@ -12,10 +12,10 @@ import fs from 'fs';
 const NON_PROFILE_EXPORTS = new Set(['.', './core', './structs', './dist/*']);
 
 /**
- * Extract profile names from build.sh EMULATOR_PROFILES array
+ * Extract profile names from scripts/build-docker-inner.sh EMULATOR_PROFILES array
  */
 function getProfilesFromBuildScript() {
-    const buildScript = fs.readFileSync('build.sh', 'utf-8');
+    const buildScript = fs.readFileSync('scripts/build-docker-inner.sh', 'utf-8');
 
     // Match lines like: "nuked|-DUSE_..."
     const profilePattern = /^\s*"([a-z]+)\|/gm;
