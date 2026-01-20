@@ -113,6 +113,7 @@ jobs:
           path: |
             build-*/
             dist/
+            .ccache/
           key: wasm-build-${{ github.sha }}
           restore-keys: |
             wasm-build-
