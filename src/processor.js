@@ -298,6 +298,26 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._adl_rt_patchChange(this.midi, msg.channel, msg.program);
                 break;
 
+            case 'noteAfterTouch':
+                this.adl._adl_rt_noteAfterTouch(this.midi, msg.channel, msg.note, msg.pressure);
+                break;
+
+            case 'channelAfterTouch':
+                this.adl._adl_rt_channelAfterTouch(this.midi, msg.channel, msg.pressure);
+                break;
+
+            case 'bankChange':
+                this.adl._adl_rt_bankChange(this.midi, msg.channel, msg.bank);
+                break;
+
+            case 'bankChangeMSB':
+                this.adl._adl_rt_bankChangeMSB(this.midi, msg.channel, msg.msb);
+                break;
+
+            case 'bankChangeLSB':
+                this.adl._adl_rt_bankChangeLSB(this.midi, msg.channel, msg.lsb);
+                break;
+
             case 'resetState':
                 this.adl._adl_rt_resetState(this.midi);
                 break;
@@ -355,6 +375,10 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._adl_setHTremolo(this.midi, msg.enabled ? 1 : 0);
                 break;
 
+            case 'setRunAtPcmRate':
+                this.adl._adl_setRunAtPcmRate(this.midi, msg.enabled ? 1 : 0);
+                break;
+
             case 'switchEmulator': {
                 // Note: adl_switchEmulator internally calls partialReset(), so no extra reset needed
                 const result = this.adl._adl_switchEmulator(this.midi, msg.emulator);
@@ -368,6 +392,18 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.port.postMessage({ type: 'emulatorName', name });
                 break;
             }
+
+            case 'getNumChips':
+                this.port.postMessage({ type: 'numChips', chips: this.adl._adl_getNumChips(this.midi) });
+                break;
+
+            case 'getNumChipsObtained':
+                this.port.postMessage({ type: 'numChipsObtained', chips: this.adl._adl_getNumChipsObtained(this.midi) });
+                break;
+
+            case 'getVolumeModel':
+                this.port.postMessage({ type: 'volumeModel', model: this.adl._adl_getVolumeRangeModel(this.midi) });
+                break;
 
             case 'getEmbeddedBanks': {
                 const banks = this.getEmbeddedBankList();

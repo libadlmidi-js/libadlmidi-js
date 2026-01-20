@@ -290,6 +290,52 @@ export class AdlMidi {
     }
 
     /**
+     * Send note aftertouch
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} note - Note number (0-127)
+     * @param {number} pressure - Pressure (0-127)
+     */
+    noteAfterTouch(channel, note, pressure) {
+        this.#send({ type: 'noteAfterTouch', channel, note, pressure });
+    }
+
+    /**
+     * Send channel aftertouch
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} pressure - Pressure (0-127)
+     */
+    channelAfterTouch(channel, pressure) {
+        this.#send({ type: 'channelAfterTouch', channel, pressure });
+    }
+
+    /**
+     * Change bank (16-bit)
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} bank - Bank number
+     */
+    bankChange(channel, bank) {
+        this.#send({ type: 'bankChange', channel, bank });
+    }
+
+    /**
+     * Change bank MSB
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} msb - Bank MSB (0-127)
+     */
+    bankChangeMSB(channel, msb) {
+        this.#send({ type: 'bankChangeMSB', channel, msb });
+    }
+
+    /**
+     * Change bank LSB
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} lsb - Bank LSB (0-127)
+     */
+    bankChangeLSB(channel, lsb) {
+        this.#send({ type: 'bankChangeLSB', channel, lsb });
+    }
+
+    /**
      * Reset the real-time state (stops all notes, resets controllers)
      * @returns {void}
      */
@@ -437,6 +483,14 @@ export class AdlMidi {
     }
 
     /**
+     * Run emulator with PCM rate to reduce CPU usage
+     * @param {boolean} enabled
+     */
+    setRunAtPcmRate(enabled) {
+        this.#send({ type: 'setRunAtPcmRate', enabled });
+    }
+
+    /**
      * Switch the OPL3 emulator core at runtime
      * 
      * Only emulators compiled into the current build profile are available:
@@ -477,6 +531,45 @@ export class AdlMidi {
                 resolve(msg.name);
             });
             this.#send({ type: 'getEmulatorName' });
+        });
+    }
+
+    /**
+     * Get the number of emulated chips
+     * @returns {Promise<number>}
+     */
+    async getNumChips() {
+        return new Promise((resolve) => {
+            this.#onceMessage('numChips', /** @param {{chips: number}} msg */(msg) => {
+                resolve(msg.chips);
+            });
+            this.#send({ type: 'getNumChips' });
+        });
+    }
+
+    /**
+     * Get the number of emulated chips obtained
+     * @returns {Promise<number>}
+     */
+    async getNumChipsObtained() {
+        return new Promise((resolve) => {
+            this.#onceMessage('numChipsObtained', /** @param {{chips: number}} msg */(msg) => {
+                resolve(msg.chips);
+            });
+            this.#send({ type: 'getNumChipsObtained' });
+        });
+    }
+
+    /**
+     * Get the volume range model
+     * @returns {Promise<number>}
+     */
+    async getVolumeModel() {
+        return new Promise((resolve) => {
+            this.#onceMessage('volumeModel', /** @param {{model: number}} msg */(msg) => {
+                resolve(msg.model);
+            });
+            this.#send({ type: 'getVolumeModel' });
         });
     }
 

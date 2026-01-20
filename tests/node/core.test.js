@@ -116,6 +116,30 @@ describe('AdlMidiCore Configuration', () => {
         synth.setDeepTremolo(true);
         synth.setDeepTremolo(false);
     });
+
+    it('should get number of chips', () => {
+        const chips = synth.getNumChips();
+        expect(typeof chips).toBe('number');
+        expect(chips).toBeGreaterThan(0);
+    });
+
+    it('should get number of chips obtained', () => {
+        const chips = synth.getNumChipsObtained();
+        expect(typeof chips).toBe('number');
+        expect(chips).toBeGreaterThan(0);
+    });
+
+    it('should set and get volume model', () => {
+        synth.setVolumeModel(2); // ADLMIDI_VolumeModel_NativeOPL3
+        const model = synth.getVolumeModel();
+        expect(model).toBe(2);
+    });
+
+    it('should set run at PCM rate', () => {
+        const result = synth.setRunAtPcmRate(true);
+        expect(result).toBe(true);
+        synth.setRunAtPcmRate(false);
+    });
 });
 
 describe('AdlMidiCore Real-time Synthesis', () => {
@@ -211,6 +235,20 @@ describe('AdlMidiCore Real-time Synthesis', () => {
             maxSample = Math.max(maxSample, Math.abs(samples[i]));
         }
         expect(maxSample).toBeLessThan(0.01);
+    });
+
+    it('should handle bank changes', () => {
+        // These are void functions, just check they don't throw
+        synth.bankChange(0, 100);
+        synth.bankChangeMSB(0, 120);
+        synth.bankChangeLSB(0, 1);
+    });
+
+    it('should handle aftertouch', () => {
+        synth.noteOn(0, 60, 100);
+        synth.noteAfterTouch(0, 60, 50);
+        synth.channelAfterTouch(0, 40);
+        // No errors = success
     });
 });
 

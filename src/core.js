@@ -264,6 +264,57 @@ export class AdlMidiCore {
         return this._module.UTF8ToString(ptr);
     }
 
+    /**
+     * Get the number of emulated chips.
+     *
+     * @returns {number}
+     */
+    getNumChips() {
+        this._ensurePlayer();
+        return this._module._adl_getNumChips(this._player);
+    }
+
+    /**
+     * Get the number of emulated chips obtained.
+     *
+     * @returns {number}
+     */
+    getNumChipsObtained() {
+        this._ensurePlayer();
+        return this._module._adl_getNumChipsObtained(this._player);
+    }
+
+    /**
+     * Get the volume range model.
+     *
+     * @returns {number}
+     */
+    getVolumeModel() {
+        this._ensurePlayer();
+        return this._module._adl_getVolumeRangeModel(this._player);
+    }
+
+    /**
+     * Set the volume range model.
+     *
+     * @param {number} model - Volume model type
+     */
+    setVolumeModel(model) {
+        this._ensurePlayer();
+        this._module._adl_setVolumeRangeModel(this._player, model);
+    }
+
+    /**
+     * Run emulator with PCM rate to reduce CPU usage.
+     *
+     * @param {boolean} enabled
+     * @returns {boolean} True if successful
+     */
+    setRunAtPcmRate(enabled) {
+        this._ensurePlayer();
+        return this._module._adl_setRunAtPcmRate(this._player, enabled ? 1 : 0) === 0;
+    }
+
     // =========================================================================
     // Real-time Synthesis
     // =========================================================================
@@ -289,6 +340,29 @@ export class AdlMidiCore {
     noteOff(channel, note) {
         this._ensurePlayer();
         this._module._adl_rt_noteOff(this._player, channel, note);
+    }
+
+    /**
+     * Send a note aftertouch message.
+     *
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} note - MIDI note (0-127)
+     * @param {number} pressure - Aftertouch pressure (0-127)
+     */
+    noteAfterTouch(channel, note, pressure) {
+        this._ensurePlayer();
+        this._module._adl_rt_noteAfterTouch(this._player, channel, note, pressure);
+    }
+
+    /**
+     * Send a channel aftertouch message.
+     *
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} pressure - Aftertouch pressure (0-127)
+     */
+    channelAfterTouch(channel, pressure) {
+        this._ensurePlayer();
+        this._module._adl_rt_channelAfterTouch(this._player, channel, pressure);
     }
 
     /**
@@ -323,6 +397,39 @@ export class AdlMidiCore {
     programChange(channel, program) {
         this._ensurePlayer();
         this._module._adl_rt_patchChange(this._player, channel, program);
+    }
+
+    /**
+     * Send a bank change message (16-bit).
+     *
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} bank - Bank number
+     */
+    bankChange(channel, bank) {
+        this._ensurePlayer();
+        this._module._adl_rt_bankChange(this._player, channel, bank);
+    }
+
+    /**
+     * Send a bank change MSB message.
+     *
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} msb - Bank MSB (0-127)
+     */
+    bankChangeMSB(channel, msb) {
+        this._ensurePlayer();
+        this._module._adl_rt_bankChangeMSB(this._player, channel, msb);
+    }
+
+    /**
+     * Send a bank change LSB message.
+     *
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {number} lsb - Bank LSB (0-127)
+     */
+    bankChangeLSB(channel, lsb) {
+        this._ensurePlayer();
+        this._module._adl_rt_bankChangeLSB(this._player, channel, lsb);
     }
 
     /**
