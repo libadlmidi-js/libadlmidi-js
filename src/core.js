@@ -213,6 +213,87 @@ export class AdlMidiCore {
     }
 
     /**
+     * Set the number of 4-operator channels.
+     *
+     * @param {number} count - Number of channels (-1 for auto)
+     * @returns {boolean} True if successful
+     */
+    setNumFourOpChannels(count) {
+        this._ensurePlayer();
+        return this._module._adl_setNumFourOpsChn(this._player, count) === 0;
+    }
+
+    /**
+     * Get the number of 4-operator channels.
+     *
+     * @returns {number} Count of channels
+     */
+    getNumFourOpChannels() {
+        this._ensurePlayer();
+        return this._module._adl_getNumFourOpsChn(this._player);
+    }
+
+    /**
+     * Enable/disable scaling of modulators by volume.
+     *
+     * @param {boolean} enabled
+     */
+    setScaleModulators(enabled) {
+        this._ensurePlayer();
+        this._module._adl_setScaleModulators(this._player, enabled ? 1 : 0);
+    }
+
+    /**
+     * Enable/disable full-range brightness (0-127).
+     *
+     * @param {boolean} enabled
+     */
+    setFullRangeBrightness(enabled) {
+        this._ensurePlayer();
+        this._module._adl_setFullRangeBrightness(this._player, enabled ? 1 : 0);
+    }
+
+    /**
+     * Enable/disable automatic arpeggio.
+     *
+     * @param {boolean} enabled
+     */
+    setAutoArpeggio(enabled) {
+        this._ensurePlayer();
+        this._module._adl_setAutoArpeggio(this._player, enabled ? 1 : 0);
+    }
+
+    /**
+     * Get automatic arpeggio state.
+     *
+     * @returns {boolean}
+     */
+    getAutoArpeggio() {
+        this._ensurePlayer();
+        return this._module._adl_getAutoArpeggio(this._player) !== 0;
+    }
+
+    /**
+     * Set channel allocation mode.
+     *
+     * @param {number} mode - Mode ID
+     */
+    setChannelAllocMode(mode) {
+        this._ensurePlayer();
+        this._module._adl_setChannelAllocMode(this._player, mode);
+    }
+
+    /**
+     * Get channel allocation mode.
+     *
+     * @returns {number} Mode ID
+     */
+    getChannelAllocMode() {
+        this._ensurePlayer();
+        return this._module._adl_getChannelAllocMode(this._player);
+    }
+
+    /**
      * Enable/disable soft stereo panning.
      *
      * @param {boolean} enabled

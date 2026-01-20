@@ -140,6 +140,31 @@ describe('AdlMidiCore Configuration', () => {
         expect(result).toBe(true);
         synth.setRunAtPcmRate(false);
     });
+
+    it('should handle advanced configuration', () => {
+        // 4-op channels
+        expect(synth.setNumFourOpChannels(2)).toBe(true);
+        expect(synth.getNumFourOpChannels()).toBe(2);
+        synth.setNumFourOpChannels(-1); // Reset to auto
+
+        // Modulators
+        synth.setScaleModulators(true);
+        synth.setScaleModulators(false);
+
+        // Full range brightness
+        synth.setFullRangeBrightness(true);
+        synth.setFullRangeBrightness(false);
+
+        // Auto arpeggio
+        synth.setAutoArpeggio(true);
+        expect(synth.getAutoArpeggio()).toBe(true);
+        synth.setAutoArpeggio(false);
+        expect(synth.getAutoArpeggio()).toBe(false);
+
+        // Channel alloc mode
+        synth.setChannelAllocMode(1); // ADLMIDI_ChanAlloc_OffDelay
+        expect(synth.getChannelAllocMode()).toBe(1);
+    });
 });
 
 describe('AdlMidiCore Real-time Synthesis', () => {

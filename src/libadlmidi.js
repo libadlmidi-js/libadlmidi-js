@@ -451,6 +451,85 @@ export class AdlMidi {
     }
 
     /**
+     * Set the number of 4-operator channels
+     * @param {number} channels - Number of channels (-1 for auto)
+     */
+    setNumFourOpChannels(channels) {
+        this.#send({ type: 'setNumFourOpChannels', channels });
+    }
+
+    /**
+     * Get the number of 4-operator channels
+     * @returns {Promise<number>}
+     */
+    async getNumFourOpChannels() {
+        return new Promise((resolve) => {
+            this.#onceMessage('numFourOpChannels', /** @param {{channels: number}} msg */(msg) => {
+                resolve(msg.channels);
+            });
+            this.#send({ type: 'getNumFourOpChannels' });
+        });
+    }
+
+    /**
+     * Enable/disable scaling of modulators by volume
+     * @param {boolean} enabled
+     */
+    setScaleModulators(enabled) {
+        this.#send({ type: 'setScaleModulators', enabled });
+    }
+
+    /**
+     * Enable/disable full-range brightness
+     * @param {boolean} enabled
+     */
+    setFullRangeBrightness(enabled) {
+        this.#send({ type: 'setFullRangeBrightness', enabled });
+    }
+
+    /**
+     * Enable/disable automatic arpeggio
+     * @param {boolean} enabled
+     */
+    setAutoArpeggio(enabled) {
+        this.#send({ type: 'setAutoArpeggio', enabled });
+    }
+
+    /**
+     * Get automatic arpeggio state
+     * @returns {Promise<boolean>}
+     */
+    async getAutoArpeggio() {
+        return new Promise((resolve) => {
+            this.#onceMessage('autoArpeggio', /** @param {{enabled: boolean}} msg */(msg) => {
+                resolve(msg.enabled);
+            });
+            this.#send({ type: 'getAutoArpeggio' });
+        });
+    }
+
+    /**
+     * Set channel allocation mode
+     * @param {number} mode - Mode ID
+     */
+    setChannelAllocMode(mode) {
+        this.#send({ type: 'setChannelAllocMode', mode });
+    }
+
+    /**
+     * Get channel allocation mode
+     * @returns {Promise<number>}
+     */
+    async getChannelAllocMode() {
+        return new Promise((resolve) => {
+            this.#onceMessage('channelAllocMode', /** @param {{mode: number}} msg */(msg) => {
+                resolve(msg.mode);
+            });
+            this.#send({ type: 'getChannelAllocMode' });
+        });
+    }
+
+    /**
      * Set the volume model
      * @param {number} model - Volume model number
      */
