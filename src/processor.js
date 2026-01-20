@@ -375,6 +375,10 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 break;
 
             case 'play':
+                // If at end, rewind first so play works as expected
+                if (this.adl._adl_atEnd(this.midi) !== 0) {
+                    this.adl._adl_positionRewind(this.midi);
+                }
                 this.playMode = 'file';
                 break;
 
@@ -489,6 +493,13 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
             // Use adl_play for file playback mode, adl_generate for real-time
             if (this.playMode === 'file') {
                 this.adl._adl_play(this.midi, sampleCount, this.bufferPtr);
+
+                // When song ends, silence notes and switch to realtime mode
+                if (this.adl._adl_atEnd(this.midi) !== 0) {
+                    this.adl._adl_panic(this.midi);
+                    this.playMode = 'realtime';
+                    this.port.postMessage({ type: 'playbackEnded' });
+                }
             } else {
                 this.adl._adl_generate(this.midi, sampleCount, this.bufferPtr);
             }

@@ -488,6 +488,124 @@ export class AdlMidi {
         this.#send({ type: 'reset' });
     }
 
+    // ================== MIDI File Playback API ==================
+
+    /**
+     * Load a MIDI file for playback
+     * @param {ArrayBuffer} arrayBuffer - MIDI file data
+     * @returns {Promise<{duration: number}>} Resolves with file info when loaded
+     */
+    async loadMidi(arrayBuffer) {
+        return new Promise((resolve, reject) => {
+            this.#onceMessage('midiLoaded', /** @param {{success: boolean, duration: number, error?: string}} msg */(msg) => {
+                if (msg.success) {
+                    resolve({ duration: msg.duration });
+                } else {
+                    reject(new Error(msg.error || 'Failed to load MIDI data'));
+                }
+            });
+
+            this.#send({ type: 'loadMidi', data: arrayBuffer });
+        });
+    }
+
+    /**
+     * Start or resume MIDI file playback
+     * @returns {void}
+     */
+    play() {
+        this.#send({ type: 'play' });
+    }
+
+    /**
+     * Stop MIDI file playback and rewind to beginning
+     * @returns {void}
+     */
+    stop() {
+        this.#send({ type: 'stop' });
+    }
+
+    /**
+     * Seek to a position in the MIDI file
+     * @param {number} seconds - Position in seconds
+     * @returns {void}
+     */
+    seek(seconds) {
+        this.#send({ type: 'seek', position: seconds });
+    }
+
+    /**
+     * Enable or disable looping for MIDI file playback
+     * @param {boolean} enabled - Whether to loop
+     * @returns {void}
+     */
+    setLoop(enabled) {
+        this.#send({ type: 'setLoop', enabled });
+    }
+
+    /**
+     * Set the playback tempo multiplier
+     * @param {number} tempo - Tempo multiplier (1.0 = normal speed)
+     * @returns {void}
+     */
+    setTempo(tempo) {
+        this.#send({ type: 'setTempo', tempo });
+    }
+
+    /**
+     * Get the current playback state
+     * @returns {Promise<{position: number, duration: number, atEnd: boolean, playMode: string}>}
+     */
+    async getPlaybackState() {
+        return new Promise((resolve) => {
+            this.#onceMessage('state', /** @param {{position: number, duration: number, atEnd: boolean, playMode: string}} msg */(msg) => {
+                resolve({
+                    position: msg.position,
+                    duration: msg.duration,
+                    atEnd: msg.atEnd,
+                    playMode: msg.playMode
+                });
+            });
+
+            this.#send({ type: 'getState' });
+        });
+    }
+
+    /**
+     * Register a handler for playback state updates
+     * Useful for progress tracking during playback
+     * @param {function({position: number, duration: number, atEnd: boolean, playMode: string}): void} handler
+     * @returns {function(): void} Unsubscribe function
+     */
+    onPlaybackState(handler) {
+        if (!this.#messageHandlers.has('state')) {
+            this.#messageHandlers.set('state', new Set());
+        }
+        this.#messageHandlers.get('state')?.add(handler);
+
+        // Return unsubscribe function
+        return () => {
+            this.#messageHandlers.get('state')?.delete(handler);
+        };
+    }
+
+    /**
+     * Register a handler for when playback ends naturally
+     * @param {function(): void} handler
+     * @returns {function(): void} Unsubscribe function
+     */
+    onPlaybackEnded(handler) {
+        if (!this.#messageHandlers.has('playbackEnded')) {
+            this.#messageHandlers.set('playbackEnded', new Set());
+        }
+        this.#messageHandlers.get('playbackEnded')?.add(handler);
+
+        // Return unsubscribe function
+        return () => {
+            this.#messageHandlers.get('playbackEnded')?.delete(handler);
+        };
+    }
+
     /**
      * Close the synthesizer and release resources
      * @returns {void}

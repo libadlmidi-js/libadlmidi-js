@@ -266,6 +266,7 @@
         let duration = 0;
         let isPlaying = false;
         let stateInterval = null;
+        let unsubscribeState = null;
 
         function setStatus(msg) {
             document.getElementById('status').textContent = msg;
@@ -331,21 +332,14 @@
 
             try {
                 const arrayBuffer = await file.arrayBuffer();
+                const result = await synth.loadMidi(arrayBuffer);
 
-                synth._onceMessage('midiLoaded', (msg) => {
-                    if (msg.success) {
-                        duration = msg.duration;
-                        document.getElementById('totalTime').textContent = formatTime(duration);
-                        document.getElementById('progress').style.width = '0%';
-                        document.getElementById('playBtn').disabled = false;
-                        document.getElementById('stopBtn').disabled = false;
-                        setStatus(`Loaded: ${file.name} (${formatTime(duration)})`);
-                    } else {
-                        setStatus('Failed: ' + (msg.error || 'Unknown error'));
-                    }
-                });
-
-                synth._send({ type: 'loadMidi', data: arrayBuffer });
+                duration = result.duration;
+                document.getElementById('totalTime').textContent = formatTime(duration);
+                document.getElementById('progress').style.width = '0%';
+                document.getElementById('playBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = false;
+                setStatus(`Loaded: ${file.name} (${formatTime(duration)})`);
 
             } catch (error) {
                 setStatus('Error: ' + error.message);
@@ -356,49 +350,63 @@
             if (!synth) return;
 
             if (isPlaying) {
-                synth._send({ type: 'stop' });
+                synth.stop();
                 isPlaying = false;
                 document.getElementById('playBtn').textContent = 'Play';
                 clearInterval(stateInterval);
+                if (unsubscribeState) {
+                    unsubscribeState();
+                    unsubscribeState = null;
+                }
             } else {
-                synth._send({ type: 'play' });
+                synth.play();
                 isPlaying = true;
                 document.getElementById('playBtn').textContent = 'Pause';
                 setStatus('Playing...');
 
-                stateInterval = setInterval(() => {
-                    synth._send({ type: 'getState' });
-                }, 100);
-
-                synth._messageHandlers.set('state', new Set([(msg) => {
-                    document.getElementById('currentTime').textContent = formatTime(msg.position);
-                    const pct = duration > 0 ? (msg.position / duration) * 100 : 0;
+                // Subscribe to state updates
+                unsubscribeState = synth.onPlaybackState((state) => {
+                    document.getElementById('currentTime').textContent = formatTime(state.position);
+                    const pct = duration > 0 ? (state.position / duration) * 100 : 0;
                     document.getElementById('progress').style.width = pct + '%';
 
-                    if (msg.atEnd && !document.getElementById('loopCb').checked) {
+                    if (state.atEnd && !document.getElementById('loopCb').checked) {
                         isPlaying = false;
                         document.getElementById('playBtn').textContent = 'Play';
                         clearInterval(stateInterval);
+                        if (unsubscribeState) {
+                            unsubscribeState();
+                            unsubscribeState = null;
+                        }
                         setStatus('Finished');
                     }
-                }]));
+                });
+
+                // Poll for state updates
+                stateInterval = setInterval(async () => {
+                    await synth.getPlaybackState();
+                }, 100);
             }
         });
 
         document.getElementById('stopBtn').addEventListener('click', () => {
             if (!synth) return;
-            synth._send({ type: 'stop' });
+            synth.stop();
             isPlaying = false;
             document.getElementById('playBtn').textContent = 'Play';
             document.getElementById('currentTime').textContent = '0:00';
             document.getElementById('progress').style.width = '0%';
             clearInterval(stateInterval);
+            if (unsubscribeState) {
+                unsubscribeState();
+                unsubscribeState = null;
+            }
             setStatus('Stopped');
         });
 
         document.getElementById('loopCb').addEventListener('change', (e) => {
             if (synth) {
-                synth._send({ type: 'setLoop', enabled: e.target.checked });
+                synth.setLoop(e.target.checked);
             }
         });
 

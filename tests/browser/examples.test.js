@@ -222,6 +222,212 @@ test.describe('Example Pages', () => {
         expect(hasFileInput || hasMidiSelect).toBe(true);
     });
 
+    test('player MIDI playback API works', async ({ page }) => {
+        // Test the public MIDI playback API via the AdlMidi class
+        await page.goto('/tests/fixtures/test-harness.html');
+        await page.waitForFunction(() => window.testReady === true, { timeout: 10000 });
+
+        const result = await page.evaluate(async () => {
+            const { AdlMidi } = window.testUtils;
+
+            // Create synth instance
+            const synth = new AdlMidi();
+            await synth.init('/dist/libadlmidi.nuked.processor.js');
+
+            // Fetch a test MIDI file
+            const response = await fetch('/test-files/canyon.mid');
+            const midiData = await response.arrayBuffer();
+
+            // Test loadMidi - should return duration
+            const loadResult = await synth.loadMidi(midiData);
+            if (typeof loadResult.duration !== 'number' || loadResult.duration <= 0) {
+                throw new Error(`loadMidi returned invalid duration: ${loadResult.duration}`);
+            }
+
+            // Test play/stop
+            synth.play();
+            await new Promise(r => setTimeout(r, 100));
+
+            // Test getPlaybackState
+            const state = await synth.getPlaybackState();
+            if (typeof state.position !== 'number') {
+                throw new Error(`getPlaybackState returned invalid position: ${state.position}`);
+            }
+            if (typeof state.duration !== 'number') {
+                throw new Error(`getPlaybackState returned invalid duration: ${state.duration}`);
+            }
+            if (typeof state.atEnd !== 'boolean') {
+                throw new Error(`getPlaybackState returned invalid atEnd: ${state.atEnd}`);
+            }
+
+            // Test setLoop
+            synth.setLoop(true);
+
+            // Test stop
+            synth.stop();
+
+            // Clean up
+            synth.close();
+
+            return {
+                loadDuration: loadResult.duration,
+                statePosition: state.position,
+                stateDuration: state.duration,
+                stateAtEnd: state.atEnd
+            };
+        });
+
+        // Verify results
+        expect(result.loadDuration).toBeGreaterThan(0);
+        expect(result.stateDuration).toBeGreaterThan(0);
+        expect(typeof result.stateAtEnd).toBe('boolean');
+        console.log(`MIDI API test: duration=${result.loadDuration.toFixed(2)}s, position=${result.statePosition.toFixed(2)}s`);
+    });
+
+    test('player IMF playback API works', async ({ page }) => {
+        // Test the public MIDI playback API with IMF files
+        await page.goto('/tests/fixtures/test-harness.html');
+        await page.waitForFunction(() => window.testReady === true, { timeout: 10000 });
+
+        const result = await page.evaluate(async () => {
+            const { AdlMidi } = window.testUtils;
+
+            // Create synth instance
+            const synth = new AdlMidi();
+            await synth.init('/dist/libadlmidi.nuked.processor.js');
+
+            // Fetch a test IMF file
+            const response = await fetch('/test-files/mamsnake.imf');
+            const imfData = await response.arrayBuffer();
+
+            // Test loadMidi with IMF file - should return duration
+            const loadResult = await synth.loadMidi(imfData);
+            if (typeof loadResult.duration !== 'number' || loadResult.duration <= 0) {
+                throw new Error(`loadMidi (IMF) returned invalid duration: ${loadResult.duration}`);
+            }
+
+            // Test play
+            synth.play();
+            await new Promise(r => setTimeout(r, 100));
+
+            // Test getPlaybackState
+            const state = await synth.getPlaybackState();
+
+            // Test stop
+            synth.stop();
+
+            // Clean up
+            synth.close();
+
+            return {
+                loadDuration: loadResult.duration,
+                statePosition: state.position,
+                stateDuration: state.duration
+            };
+        });
+
+        // Verify results
+        expect(result.loadDuration).toBeGreaterThan(0);
+        expect(result.stateDuration).toBeGreaterThan(0);
+        console.log(`IMF API test: duration=${result.loadDuration.toFixed(2)}s, position=${result.statePosition.toFixed(2)}s`);
+    });
+
+    test('file playback and real-time MIDI can be mixed', async ({ page }) => {
+        await page.goto('/tests/fixtures/test-harness.html');
+        await page.waitForFunction(() => window.testReady === true, { timeout: 10000 });
+
+        const result = await page.evaluate(async () => {
+            const { hashSamples } = window.testUtils;
+
+            // Helper to render audio with a synth
+            async function renderAudio(setupFn, durationMs = 500) {
+                const sampleRate = 44100;
+                const samples = Math.floor((durationMs / 1000) * sampleRate);
+                const ctx = new OfflineAudioContext(2, samples, sampleRate);
+
+                const wasmResponse = await fetch('/dist/libadlmidi.nuked.core.wasm');
+                const wasmBinary = await wasmResponse.arrayBuffer();
+
+                await ctx.audioWorklet.addModule('/dist/libadlmidi.nuked.processor.js');
+
+                const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
+                    processorOptions: { sampleRate, wasmBinary }
+                });
+                node.connect(ctx.destination);
+
+                // Wait for ready
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Timeout')), 5000);
+                    node.port.onmessage = (e) => {
+                        if (e.data.type === 'ready') {
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    };
+                });
+
+                // Run the setup function (load file, send notes, etc.)
+                await setupFn(node);
+
+                // Render
+                const buffer = await ctx.startRendering();
+                const left = buffer.getChannelData(0);
+
+                return await hashSamples(left);
+            }
+
+            // Fetch MIDI file once
+            const response = await fetch('/test-files/canyon.mid');
+            const midiData = await response.arrayBuffer();
+
+            // Test 1: MIDI file playback only
+            const hashFileOnly = await renderAudio(async (node) => {
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Load timeout')), 5000);
+                    const handler = (e) => {
+                        if (e.data.type === 'midiLoaded') {
+                            node.port.removeEventListener('message', handler);
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    };
+                    node.port.addEventListener('message', handler);
+                    node.port.postMessage({ type: 'loadMidi', data: midiData.slice(0) });
+                });
+                node.port.postMessage({ type: 'play' });
+            });
+
+            // Test 2: MIDI file + extra real-time note
+            const hashFileWithNote = await renderAudio(async (node) => {
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Load timeout')), 5000);
+                    const handler = (e) => {
+                        if (e.data.type === 'midiLoaded') {
+                            node.port.removeEventListener('message', handler);
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    };
+                    node.port.addEventListener('message', handler);
+                    node.port.postMessage({ type: 'loadMidi', data: midiData.slice(0) });
+                });
+                node.port.postMessage({ type: 'play' });
+                // Add an extra note on channel 15 (unlikely to conflict)
+                node.port.postMessage({ type: 'noteOn', channel: 15, note: 36, velocity: 127 });
+            });
+
+            return {
+                hashFileOnly,
+                hashFileWithNote,
+                different: hashFileOnly !== hashFileWithNote
+            };
+        });
+
+        // The hashes should be different - the extra note should change the audio
+        expect(result.different).toBe(true);
+        console.log(`Mixed mode test: file-only=${result.hashFileOnly.substring(0, 16)}..., with-note=${result.hashFileWithNote.substring(0, 16)}...`);
+    });
+
     test('keyboard produces actual audio samples', async ({ page }) => {
         await page.goto('/examples/keyboard.html');
 
