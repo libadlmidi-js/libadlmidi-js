@@ -68,10 +68,10 @@ jobs:
             build-*/
             dist/
             .ccache/
-          key: wasm-build-${{ github.sha }}
+          key: wasm-build-v2-${{ github.sha }}
           restore-keys: |
-            wasm-build-${{ github.event.pull_request.base.sha }}
-            wasm-build-
+            wasm-build-v2-${{ github.event.pull_request.base.sha }}
+            wasm-build-v2-
           lookup-only: true
 
       # Only build if files changed OR no cache exists
@@ -88,7 +88,7 @@ jobs:
             build-*/
             dist/
             .ccache/
-          key: wasm-build-${{ github.sha }}
+          key: wasm-build-v2-${{ github.sha }}
 
   # Always run JS build, using WASM from wasm-build job
   js-build:
@@ -113,9 +113,9 @@ jobs:
           path: |
             build-*/
             dist/
-          key: wasm-build-${{ github.sha }}
+          key: wasm-build-v2-${{ github.sha }}
           restore-keys: |
-            wasm-build-
+            wasm-build-v2-
           fail-on-cache-miss: true
 
       - name: Generate JS bundles
