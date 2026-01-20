@@ -1,6 +1,6 @@
 {
   "name": "libadlmidi-js",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "libadlmidi": {
     "version": "1.6.2",
     "commit": "221a19d62bb643aac7ceb344712efd09dd88ea86"
