@@ -207,16 +207,10 @@
             <label>
                 <input type="checkbox" id="loopCb"> Loop
             </label>
-            <label>
-                Bank:
-                <select id="bankSelect" disabled>
-                    <option value="0">0 - AIL (Star Control 3)</option>
-                    <option value="1">1 - Bisqwit</option>
-                    <option value="5">5 - Apogee IMF 90</option>
-                    <option value="68">68 - SB FMSynth</option>
-                    <option value="72" selected>72 - TMB (Duke 3D)</option>
-                </select>
-            </label>
+        </div>
+
+        <div id="currentBank" style="padding: 8px 12px; margin: 10px 0; background: var(--bg-secondary); border-radius: 4px; font-size: 13px;">
+            <strong>Bank:</strong> <span id="currentBankName">None</span>
         </div>
 
         <div class="progress-container">
@@ -231,9 +225,19 @@
     </div>
 
     <div class="card">
-        <h3>External Bank</h3>
-        <p class="info" style="margin-top: 0; margin-bottom: 15px;">Load a bank file from the collection:</p>
+        <h3>Embedded Banks</h3>
+        <div class="controls" style="flex-wrap: wrap;">
+            <label>
+                <select id="bankSelect" disabled>
+                    <option value="">Loading banks...</option>
+                </select>
+            </label>
+            <button id="loadEmbeddedBtn" disabled>Load</button>
+        </div>
+    </div>
 
+    <div class="card">
+        <h3>External Banks</h3>
         <div class="controls" style="flex-direction: column; align-items: flex-start; gap: 10px;">
             <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
                 <label>
@@ -249,16 +253,8 @@
                     </select>
                 </label>
             </div>
-            <button id="loadBankBtn" disabled>Load Bank</button>
+            <button id="loadBankBtn" disabled>Load</button>
         </div>
-
-        <p class="info" style="margin-bottom: 0;">
-            Loading an external bank overrides the embedded bank setting.
-        </p>
-    </div>
-
-    <div class="info">
-        Different banks produce different sounds. DMX banks work well for Doom-era games, AIL for 90s Windows games.
     </div>
 
     <script type="module">
@@ -287,6 +283,26 @@
 
                 setStatus('Initializing AudioWorklet...');
                 await synth.init('../dist/libadlmidi.nuked.processor.js');
+
+                // Populate bank list
+                const bankSelect = document.getElementById('bankSelect');
+                try {
+                    const banks = await synth.getEmbeddedBanks();
+                    bankSelect.innerHTML = '';
+                    banks.forEach(bank => {
+                        const option = document.createElement('option');
+                        option.value = bank.id;
+                        option.textContent = `${bank.id} - ${bank.name}`;
+                        if (bank.id === 72) option.selected = true;
+                        bankSelect.appendChild(option);
+                    });
+                    if (banks.length === 0) {
+                        bankSelect.innerHTML = '<option value="">No embedded banks (slim build)</option>';
+                    }
+                } catch (e) {
+                    console.warn('Could not load bank list:', e);
+                    bankSelect.innerHTML = '<option value="72">72 - TMB (Duke 3D)</option>';
+                }
 
                 setStatus('Ready');
 
@@ -410,33 +426,43 @@
             }
         });
 
-        document.getElementById('bankSelect').addEventListener('change', async (e) => {
+        function setCurrentBank(name) {
+            document.getElementById('currentBankName').textContent = name;
+        }
+
+        document.getElementById('loadEmbeddedBtn').addEventListener('click', async () => {
             if (!synth) return;
+            const select = document.getElementById('bankSelect');
+            const bankId = parseInt(select.value);
+            const bankName = select.options[select.selectedIndex].textContent;
             try {
-                await synth.setBank(parseInt(e.target.value));
-                setStatus('Bank: ' + e.target.value);
+                await synth.setBank(bankId);
+                setCurrentBank(bankName);
+                setStatus('Loaded embedded bank');
             } catch (error) {
                 setStatus('Error: ' + error.message);
             }
         });
 
-        let BANK_FILES = {};
+        let BANK_CATEGORIES = {};
 
         async function loadBankManifest() {
             try {
                 const response = await fetch('../dist/fm_banks/manifest.json');
                 if (!response.ok) throw new Error('Failed to load manifest');
-                BANK_FILES = await response.json();
+                const manifest = await response.json();
+                BANK_CATEGORIES = manifest.categories || {};
 
                 const categorySelect = document.getElementById('bankCategory');
                 categorySelect.innerHTML = '<option value="">Select category...</option>';
-                for (const category of Object.keys(BANK_FILES).sort()) {
+                for (const category of Object.keys(BANK_CATEGORIES).sort()) {
                     const option = document.createElement('option');
                     option.value = category;
-                    option.textContent = `${category} (${BANK_FILES[category].length})`;
+                    const bankCount = BANK_CATEGORIES[category].banks?.length || 0;
+                    option.textContent = `${category} (${bankCount})`;
                     categorySelect.appendChild(option);
                 }
-                console.log('Bank manifest loaded:', Object.keys(BANK_FILES).length, 'categories');
+                console.log('Bank manifest loaded:', Object.keys(BANK_CATEGORIES).length, 'categories');
             } catch (error) {
                 console.error('Failed to load bank manifest:', error);
             }
@@ -448,6 +474,12 @@
             setTimeout(() => {
                 if (synth) {
                     document.getElementById('bankCategory').disabled = false;
+                    document.getElementById('loadEmbeddedBtn').disabled = false;
+                    // Set initial bank display
+                    const select = document.getElementById('bankSelect');
+                    if (select.selectedIndex >= 0) {
+                        setCurrentBank(select.options[select.selectedIndex].textContent);
+                    }
                 }
             }, 100);
         });
@@ -459,11 +491,11 @@
 
             fileSelect.innerHTML = '<option value="">Select a bank...</option>';
 
-            if (category && BANK_FILES[category]) {
-                BANK_FILES[category].forEach(file => {
+            if (category && BANK_CATEGORIES[category]?.banks) {
+                BANK_CATEGORIES[category].banks.forEach(bank => {
                     const option = document.createElement('option');
-                    option.value = file;
-                    option.textContent = file.split('/').pop();
+                    option.value = `${category}/${bank.file}`;
+                    option.textContent = bank.name;
                     fileSelect.appendChild(option);
                 });
                 fileSelect.disabled = false;
@@ -478,17 +510,21 @@
         });
 
         document.getElementById('loadBankBtn').addEventListener('click', async () => {
-            const file = document.getElementById('bankFile').value;
+            const fileSelect = document.getElementById('bankFile');
+            const file = fileSelect.value;
             if (!file || !synth) return;
 
+            const bankName = fileSelect.options[fileSelect.selectedIndex].textContent;
+
             try {
-                setStatus('Loading bank: ' + file);
+                setStatus('Loading bank: ' + bankName);
                 const response = await fetch('../dist/fm_banks/' + file);
                 if (!response.ok) throw new Error('Failed to fetch: ' + response.status);
 
                 const bankData = await response.arrayBuffer();
                 await synth.loadBank(bankData);
-                setStatus('Bank loaded: ' + file.split('/').pop());
+                setCurrentBank('External: ' + bankName);
+                setStatus('Loaded external bank');
             } catch (error) {
                 setStatus('Error: ' + error.message);
                 console.error(error);

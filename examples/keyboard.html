@@ -146,10 +146,7 @@
     <div class="controls">
         <label>Bank:
             <select id="bankSelect" disabled>
-                <option value="0">0 - AIL (Star Control 3)</option>
-                <option value="1">1 - Bisqwit</option>
-                <option value="5">5 - Apogee IMF 90</option>
-                <option value="72" selected>72 - TMB (Duke 3D)</option>
+                <option value="">Loading banks...</option>
             </select>
         </label>
         <label>Channel:
@@ -262,6 +259,27 @@
                 await synth.init();
 
                 window.synth = synth;
+
+                // Populate bank list
+                const bankSelect = document.getElementById('bankSelect');
+                try {
+                    const banks = await synth.getEmbeddedBanks();
+                    bankSelect.innerHTML = '';
+                    banks.forEach(bank => {
+                        const option = document.createElement('option');
+                        option.value = bank.id;
+                        option.textContent = `${bank.id} - ${bank.name}`;
+                        if (bank.id === 72) option.selected = true; // Default to TMB
+                        bankSelect.appendChild(option);
+                    });
+                    if (banks.length === 0) {
+                        bankSelect.innerHTML = '<option value="">No embedded banks (slim build)</option>';
+                    }
+                } catch (e) {
+                    console.warn('Could not load bank list:', e);
+                    bankSelect.innerHTML = '<option value="72">72 - TMB (Duke 3D)</option>';
+                }
+
                 setStatus('Ready');
 
                 document.getElementById('initBtn').disabled = true;

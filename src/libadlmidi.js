@@ -481,6 +481,23 @@ export class AdlMidi {
     }
 
     /**
+     * Get list of embedded banks available in this build
+     * Note: Slim builds have no embedded banks and will return an empty array
+     * @returns {Promise<{id: number, name: string}[]>} Array of bank info objects
+     * @example
+     * const banks = await synth.getEmbeddedBanks();
+     * banks.forEach(b => console.log(`${b.id}: ${b.name}`));
+     */
+    async getEmbeddedBanks() {
+        return new Promise((resolve) => {
+            this.#onceMessage('embeddedBanks', /** @param {{banks: {id: number, name: string}[]}} msg */(msg) => {
+                resolve(msg.banks);
+            });
+            this.#send({ type: 'getEmbeddedBanks' });
+        });
+    }
+
+    /**
      * Reset the synthesizer
      * @returns {void}
      */

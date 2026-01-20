@@ -183,6 +183,25 @@ export class AdlMidiCore {
     }
 
     /**
+     * Get list of embedded banks with their names.
+     *
+     * @returns {{id: number, name: string}[]} Array of bank info objects
+     */
+    getEmbeddedBanks() {
+        const count = this._module._adl_getBanksCount();
+        const namesPtr = this._module._adl_getBankNames();
+        const banks = [];
+
+        for (let i = 0; i < count; i++) {
+            const strPtr = this._module.getValue(namesPtr + i * 4, 'i32');
+            const name = strPtr ? this._module.UTF8ToString(strPtr) : `Bank ${i}`;
+            banks.push({ id: i, name });
+        }
+
+        return banks;
+    }
+
+    /**
      * Set the number of emulated OPL3 chips.
      *
      * @param {number} count - Number of chips (1-100)

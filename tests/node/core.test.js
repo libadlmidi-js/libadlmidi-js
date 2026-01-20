@@ -79,6 +79,20 @@ describe('AdlMidiCore Configuration', () => {
         expect(count).toBeGreaterThan(0);
     });
 
+    it('should get embedded banks with names', () => {
+        const banks = synth.getEmbeddedBanks();
+        expect(banks.length).toBeGreaterThan(0);
+        expect(banks[0]).toHaveProperty('id');
+        expect(banks[0]).toHaveProperty('name');
+        expect(typeof banks[0].id).toBe('number');
+        expect(typeof banks[0].name).toBe('string');
+        expect(banks[0].id).toBe(0);
+        // Bank 72 should exist and have a name
+        const bank72 = banks.find(b => b.id === 72);
+        expect(bank72).toBeDefined();
+        expect(bank72.name).toBeTruthy();
+    });
+
     it('should set bank successfully', () => {
         expect(synth.setBank(72)).toBe(true);
     });

@@ -380,6 +380,20 @@ test.describe('Example Pages', () => {
             const response = await fetch('/test-files/canyon.mid');
             const midiData = await response.arrayBuffer();
 
+            // Helper to sync with worklet
+            const syncWorklet = (node) => {
+                return new Promise(resolve => {
+                    const handler = (e) => {
+                        if (e.data.type === 'pong') {
+                            node.port.removeEventListener('message', handler);
+                            resolve();
+                        }
+                    };
+                    node.port.addEventListener('message', handler);
+                    node.port.postMessage({ type: 'ping' });
+                });
+            };
+
             // Test 1: MIDI file playback only
             const hashFileOnly = await renderAudio(async (node) => {
                 await new Promise((resolve, reject) => {
@@ -395,6 +409,7 @@ test.describe('Example Pages', () => {
                     node.port.postMessage({ type: 'loadMidi', data: midiData.slice(0) });
                 });
                 node.port.postMessage({ type: 'play' });
+                await syncWorklet(node);
             });
 
             // Test 2: MIDI file + extra real-time note
@@ -414,6 +429,7 @@ test.describe('Example Pages', () => {
                 node.port.postMessage({ type: 'play' });
                 // Add an extra note on channel 15 (unlikely to conflict)
                 node.port.postMessage({ type: 'noteOn', channel: 15, note: 36, velocity: 127 });
+                await syncWorklet(node);
             });
 
             return {
@@ -426,6 +442,37 @@ test.describe('Example Pages', () => {
         // The hashes should be different - the extra note should change the audio
         expect(result.different).toBe(true);
         console.log(`Mixed mode test: file-only=${result.hashFileOnly.substring(0, 16)}..., with-note=${result.hashFileWithNote.substring(0, 16)}...`);
+    });
+
+    test('getEmbeddedBanks returns bank list', async ({ page }) => {
+        await page.goto('/tests/fixtures/test-harness.html');
+        await page.waitForFunction(() => window.testReady === true, { timeout: 10000 });
+
+        const result = await page.evaluate(async () => {
+            const { AdlMidi } = window.testUtils;
+
+            const synth = new AdlMidi();
+            await synth.init('/dist/libadlmidi.nuked.processor.js');
+
+            const banks = await synth.getEmbeddedBanks();
+            synth.close();
+
+            return {
+                count: banks.length,
+                hasId: banks.length > 0 && typeof banks[0].id === 'number',
+                hasName: banks.length > 0 && typeof banks[0].name === 'string',
+                firstBank: banks[0],
+                bank72: banks.find(b => b.id === 72)
+            };
+        });
+
+        // Should have many banks (the full build has 70+)
+        expect(result.count).toBeGreaterThan(0);
+        expect(result.hasId).toBe(true);
+        expect(result.hasName).toBe(true);
+        expect(result.firstBank.id).toBe(0);
+        expect(result.firstBank.name).toBeTruthy();
+        console.log(`getEmbeddedBanks: ${result.count} banks, first="${result.firstBank.name}", bank72="${result.bank72?.name}"`);
     });
 
     test('keyboard produces actual audio samples', async ({ page }) => {

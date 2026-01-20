@@ -369,6 +369,12 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 break;
             }
 
+            case 'getEmbeddedBanks': {
+                const banks = this.getEmbeddedBankList();
+                this.port.postMessage({ type: 'embeddedBanks', banks });
+                break;
+            }
+
             // MIDI file playback
             case 'loadMidi':
                 this.loadMidiData(msg.data);
@@ -447,6 +453,26 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 error: error.message
             });
         }
+    }
+
+    /**
+     * Get list of embedded banks with their names
+     * @returns {{id: number, name: string}[]}
+     */
+    getEmbeddedBankList() {
+        const count = this.adl._adl_getBanksCount();
+        const namesPtr = this.adl._adl_getBankNames();
+        const banks = [];
+
+        // namesPtr points to an array of char* pointers
+        for (let i = 0; i < count; i++) {
+            // Read the pointer at offset i (4 bytes per pointer in WASM32)
+            const strPtr = this.adl.getValue(namesPtr + i * 4, 'i32');
+            const name = strPtr ? this.adl.UTF8ToString(strPtr) : `Bank ${i}`;
+            banks.push({ id: i, name });
+        }
+
+        return banks;
     }
 
     loadBank(arrayBuffer) {

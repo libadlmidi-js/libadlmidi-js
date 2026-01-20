@@ -221,11 +221,7 @@
             <label>
                 Bank:
                 <select id="bankSelect">
-                    <option value="0">0 - AIL (Star Control 3)</option>
-                    <option value="1">1 - Bisqwit</option>
-                    <option value="5">5 - Apogee IMF 90</option>
-                    <option value="68">68 - SB FMSynth</option>
-                    <option value="72" selected>72 - TMB (Duke 3D)</option>
+                    <option value="">Loading banks...</option>
                 </select>
             </label>
             <button id="convertBtn" disabled>Convert to WAV</button>
@@ -263,11 +259,6 @@
         </div>
     </div>
 
-    <div class="info">
-        Different banks produce different instrument sounds. Try DMX banks for Doom-era games, AIL for 90s Windows
-        games.
-    </div>
-
     <script type="module">
         let synth = null;
         let midiData = null;
@@ -278,6 +269,31 @@
         function setStatus(msg) {
             document.getElementById('status').textContent = msg;
         }
+
+        // Load bank list on page load
+        async function populateBankList() {
+            const bankSelect = document.getElementById('bankSelect');
+            try {
+                const { AdlMidiCore } = await import('../src/profiles/nuked.js');
+                const tempSynth = await AdlMidiCore.create();
+                const banks = tempSynth.getEmbeddedBanks();
+                bankSelect.innerHTML = '';
+                banks.forEach(bank => {
+                    const option = document.createElement('option');
+                    option.value = bank.id;
+                    option.textContent = `${bank.id} - ${bank.name}`;
+                    if (bank.id === 72) option.selected = true;
+                    bankSelect.appendChild(option);
+                });
+                if (banks.length === 0) {
+                    bankSelect.innerHTML = '<option value="">No embedded banks (slim build)</option>';
+                }
+            } catch (e) {
+                console.warn('Could not load bank list:', e);
+                bankSelect.innerHTML = '<option value="72" selected>72 - TMB (Duke 3D)</option>';
+            }
+        }
+        populateBankList();
 
         function formatTime(seconds) {
             const mins = Math.floor(seconds / 60);

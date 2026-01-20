@@ -318,10 +318,7 @@
             <label>
                 Bank:
                 <select id="bankSelect" disabled>
-                    <option value="72">72 - TMB (Shadow Warrior)</option>
-                    <option value="58">58 - TMB (Duke Nukem 3D)</option>
-                    <option value="0">0 - AIL (Star Control 3)</option>
-                    <option value="14">14 - DMX (Doom)</option>
+                    <option value="">Loading banks...</option>
                 </select>
             </label>
             <label>
@@ -711,6 +708,26 @@
                 const { AdlMidi } = await import('../dist/libadlmidi.js');
                 synth = new AdlMidi();
                 await synth.init('../dist/libadlmidi.nuked.processor.js');
+
+                // Populate bank list
+                const bankSelect = document.getElementById('bankSelect');
+                try {
+                    const banks = await synth.getEmbeddedBanks();
+                    bankSelect.innerHTML = '';
+                    banks.forEach(bank => {
+                        const option = document.createElement('option');
+                        option.value = bank.id;
+                        option.textContent = `${bank.id} - ${bank.name}`;
+                        if (bank.id === 72) option.selected = true;
+                        bankSelect.appendChild(option);
+                    });
+                    if (banks.length === 0) {
+                        bankSelect.innerHTML = '<option value="">No embedded banks (slim build)</option>';
+                    }
+                } catch (e) {
+                    console.warn('Could not load bank list:', e);
+                    bankSelect.innerHTML = '<option value="72">72 - TMB (Duke 3D)</option>';
+                }
 
                 document.getElementById('initBtn').disabled = true;
                 document.getElementById('programSelect').disabled = false;
