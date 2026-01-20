@@ -299,15 +299,23 @@
                     if (banks.length === 0) {
                         bankSelect.innerHTML = '<option value="">No embedded banks (slim build)</option>';
                     }
+                    
+                    // Update the display to show the default bank (id 72)
+                    if (bankSelect.selectedIndex >= 0) {
+                        setCurrentBank(bankSelect.options[bankSelect.selectedIndex].textContent);
+                    }
                 } catch (e) {
                     console.warn('Could not load bank list:', e);
                     bankSelect.innerHTML = '<option value="72">72 - TMB (Duke 3D)</option>';
+                    setCurrentBank('72 - TMB (Duke 3D)');
                 }
 
                 setStatus('Ready');
 
                 document.getElementById('initBtn').disabled = true;
                 document.getElementById('bankSelect').disabled = false;
+                document.getElementById('loadEmbeddedBtn').disabled = false;
+                document.getElementById('bankCategory').disabled = false;
 
             } catch (error) {
                 setStatus('Error: ' + error.message);
@@ -469,20 +477,6 @@
         }
 
         loadBankManifest();
-
-        document.getElementById('initBtn').addEventListener('click', () => {
-            setTimeout(() => {
-                if (synth) {
-                    document.getElementById('bankCategory').disabled = false;
-                    document.getElementById('loadEmbeddedBtn').disabled = false;
-                    // Set initial bank display
-                    const select = document.getElementById('bankSelect');
-                    if (select.selectedIndex >= 0) {
-                        setCurrentBank(select.options[select.selectedIndex].textContent);
-                    }
-                }
-            }, 100);
-        });
 
         document.getElementById('bankCategory').addEventListener('change', (e) => {
             const category = e.target.value;
