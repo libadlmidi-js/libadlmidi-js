@@ -141,6 +141,18 @@ describe('AdlMidiCore Configuration', () => {
         synth.setRunAtPcmRate(false);
     });
 
+    it('should get library version strings', () => {
+        const versionStr = synth.getLibraryVersion();
+        expect(typeof versionStr).toBe('string');
+        expect(versionStr).toMatch(/^\d+\.\d+\.\d+/);
+
+        const versionObj = synth.getVersion();
+        expect(versionObj).toHaveProperty('major');
+        expect(versionObj).toHaveProperty('minor');
+        expect(versionObj).toHaveProperty('patch');
+        expect(typeof versionObj.major).toBe('number');
+    });
+
     it('should handle advanced configuration', () => {
         // 4-op channels
         expect(synth.setNumFourOpChannels(2)).toBe(true);

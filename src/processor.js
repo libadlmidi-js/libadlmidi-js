@@ -425,6 +425,24 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 break;
             }
 
+            case 'getLibraryVersion': {
+                const ptr = this.adl._adl_linkedLibraryVersion();
+                const version = ptr ? this.adl.UTF8ToString(ptr) : 'Unknown';
+                this.port.postMessage({ type: 'libraryVersion', version });
+                break;
+            }
+
+            case 'getVersion': {
+                const ptr = this.adl._adl_linkedVersion();
+                const version = ptr ? {
+                    major: this.adl.getValue(ptr, 'i16'),
+                    minor: this.adl.getValue(ptr + 2, 'i16'),
+                    patch: this.adl.getValue(ptr + 4, 'i16')
+                } : null;
+                this.port.postMessage({ type: 'version', version });
+                break;
+            }
+
             case 'getNumChips':
                 this.port.postMessage({ type: 'numChips', chips: this.adl._adl_getNumChips(this.midi) });
                 break;

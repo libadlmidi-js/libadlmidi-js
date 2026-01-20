@@ -614,6 +614,32 @@ export class AdlMidi {
     }
 
     /**
+     * Get the version string of the linked libADLMIDI library
+     * @returns {Promise<string>}
+     */
+    async getLibraryVersion() {
+        return new Promise((resolve) => {
+            this.#onceMessage('libraryVersion', /** @param {{version: string}} msg */(msg) => {
+                resolve(msg.version);
+            });
+            this.#send({ type: 'getLibraryVersion' });
+        });
+    }
+
+    /**
+     * Get the version of the linked libADLMIDI library as an object
+     * @returns {Promise<{major: number, minor: number, patch: number}>}
+     */
+    async getVersion() {
+        return new Promise((resolve) => {
+            this.#onceMessage('version', /** @param {{version: {major: number, minor: number, patch: number}}} msg */(msg) => {
+                resolve(msg.version);
+            });
+            this.#send({ type: 'getVersion' });
+        });
+    }
+
+    /**
      * Get the number of emulated chips
      * @returns {Promise<number>}
      */

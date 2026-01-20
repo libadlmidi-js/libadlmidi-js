@@ -347,6 +347,30 @@ export class AdlMidiCore {
     }
 
     /**
+     * Get the version string of the linked libADLMIDI library.
+     *
+     * @returns {string} Version string (e.g., "1.5.1")
+     */
+    getLibraryVersion() {
+        const ptr = this._module._adl_linkedLibraryVersion();
+        return this._module.UTF8ToString(ptr);
+    }
+
+    /**
+     * Get the version of the linked libADLMIDI library as an object.
+     *
+     * @returns {{major: number, minor: number, patch: number}}
+     */
+    getVersion() {
+        const ptr = this._module._adl_linkedVersion();
+        return {
+            major: this._module.getValue(ptr, 'i16'),
+            minor: this._module.getValue(ptr + 2, 'i16'),
+            patch: this._module.getValue(ptr + 4, 'i16')
+        };
+    }
+
+    /**
      * Get the number of emulated chips.
      *
      * @returns {number}
