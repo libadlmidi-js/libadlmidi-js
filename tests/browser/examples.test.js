@@ -546,4 +546,101 @@ test.describe('Example Pages', () => {
         expect(audioData.nonSilentCount).toBeGreaterThan(5);
         console.log(`Keyboard audio: avgEnergy=${audioData.avgEnergy.toFixed(2)}, nonSilent=${audioData.nonSilentCount}/${audioData.fftSize}`);
     });
+
+    test('midi-to-audio.html loads and accepts file', async ({ page }) => {
+        const errors = [];
+        page.on('console', msg => {
+            if (msg.type() === 'error') errors.push(msg.text());
+        });
+
+        await page.goto('/examples/midi-to-audio.html');
+        await expect(page.locator('h1')).toContainText('MIDI to WAV Converter');
+
+        // Check if bank select populates
+        await expect(page.locator('#bankSelect option')).not.toHaveCount(0);
+
+        // Wait for synth to be ready
+        await expect(page.locator('#status')).toContainText('Ready', { timeout: 10000 });
+
+        // Upload a MIDI file
+        const fileInput = page.locator('#fileInput');
+        await fileInput.setInputFiles('test-files/canyon.mid');
+
+        // Check if status updates
+        await expect(page.locator('#status')).toContainText('Loaded:', { timeout: 10000 });
+        await expect(page.locator('#fileName')).toContainText('canyon.mid');
+
+        // Convert button should be enabled
+        await expect(page.locator('#convertBtn')).toBeEnabled();
+
+        // No console errors
+        expect(errors.filter(e => !e.includes('favicon'))).toHaveLength(0);
+    });
+
+    test('patch-editor.html initializes and changes program', async ({ page }) => {
+        const errors = [];
+        page.on('console', msg => {
+            if (msg.type() === 'error') errors.push(msg.text());
+        });
+
+        await page.goto('/examples/patch-editor.html');
+
+        // Click initialize
+        await page.click('#initBtn');
+        // It goes Ready -> Loading program 0... -> Program 0 loaded
+        await expect(page.locator('#status')).toContainText('Program 0 loaded', { timeout: 10000 });
+
+        // Select a different program
+        await page.selectOption('#programSelect', '56'); // Trumpet
+
+        // Verify status updated (which implies loadPatch -> programChange was called)
+        await expect(page.locator('#status')).toContainText('Program 56 loaded');
+
+        // Verify UI controls are enabled
+        await expect(page.locator('#bankSelect')).toBeEnabled();
+        await expect(page.locator('#programSelect')).toBeEnabled();
+
+        // No console errors
+        expect(errors.filter(e => !e.includes('favicon'))).toHaveLength(0);
+    });
+
+    test('player.html loads MIDI file and enables play', async ({ page }) => {
+        const errors = [];
+        page.on('console', msg => {
+            if (msg.type() === 'error') errors.push(msg.text());
+        });
+
+        await page.goto('/examples/player.html');
+
+        // Initialize
+        await page.click('#initBtn');
+        await expect(page.locator('#status')).toContainText('Ready', { timeout: 10000 });
+
+        // Upload MIDI file
+        const fileInput = page.locator('#fileInput');
+        await fileInput.setInputFiles('test-files/canyon.mid');
+
+        // Wait for load
+        await expect(page.locator('#status')).toContainText('Loaded: canyon.mid', { timeout: 10000 });
+
+        // Play button should be enabled
+        await expect(page.locator('#playBtn')).toBeEnabled();
+        await expect(page.locator('#playBtn')).toContainText('Play');
+
+        // Click play
+        await page.click('#playBtn');
+        await expect(page.locator('#playBtn')).toContainText('Pause');
+        await expect(page.locator('#status')).toContainText('Playing...');
+
+        // Wait a bit
+        await page.waitForTimeout(500);
+
+        // Stop
+        await page.click('#stopBtn');
+        await expect(page.locator('#playBtn')).toContainText('Play');
+        await expect(page.locator('#status')).toContainText('Stopped');
+
+        // No console errors
+        expect(errors.filter(e => !e.includes('favicon'))).toHaveLength(0);
+    });
 });
