@@ -381,6 +381,20 @@ describe('AdlMidiCore MIDI Playback', () => {
         synth.setTempo(2.0); // Double speed
         synth.setTempo(1.0);
     });
+
+    it('should get music title', () => {
+        synth.loadMidi(midiData);
+        // canyon.mid typically has "Canyon.mid" or similar as title, or sometimes empty depending on how it's parsed
+        // We just check it's a string and doesn't crash
+        const title = synth.getMusicTitle();
+        expect(typeof title).toBe('string');
+    });
+
+    it('should get music copyright', () => {
+        synth.loadMidi(midiData);
+        const copyright = synth.getMusicCopyright();
+        expect(typeof copyright).toBe('string');
+    });
 });
 
 describe('AdlMidiCore Emulator Switching', () => {

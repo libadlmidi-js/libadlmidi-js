@@ -690,11 +690,37 @@ export class AdlMidi {
                 if (msg.success) {
                     resolve({ duration: msg.duration });
                 } else {
-                    reject(new Error(msg.error || 'Failed to load MIDI data'));
+                    reject(new Error(msg.error || 'Failed to parse MIDI data'));
                 }
             });
 
             this.#send({ type: 'loadMidi', data: arrayBuffer });
+        });
+    }
+
+    /**
+     * Get the music title of the loaded MIDI file
+     * @returns {Promise<string>}
+     */
+    async getMusicTitle() {
+        return new Promise((resolve) => {
+            this.#onceMessage('musicTitle', /** @param {{title: string}} msg */(msg) => {
+                resolve(msg.title);
+            });
+            this.#send({ type: 'getMusicTitle' });
+        });
+    }
+
+    /**
+     * Get the copyright notice of the loaded MIDI file
+     * @returns {Promise<string>}
+     */
+    async getMusicCopyright() {
+        return new Promise((resolve) => {
+            this.#onceMessage('musicCopyright', /** @param {{copyright: string}} msg */(msg) => {
+                resolve(msg.copyright);
+            });
+            this.#send({ type: 'getMusicCopyright' });
         });
     }
 

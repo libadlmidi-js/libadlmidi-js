@@ -572,6 +572,28 @@ export class AdlMidiCore {
     }
 
     /**
+     * Get the music title of the loaded MIDI file.
+     *
+     * @returns {string} Title or empty string
+     */
+    getMusicTitle() {
+        this._ensurePlayer();
+        const ptr = this._module._adl_metaMusicTitle(this._player);
+        return ptr ? this._module.UTF8ToString(ptr) : '';
+    }
+
+    /**
+     * Get the copyright notice of the loaded MIDI file.
+     *
+     * @returns {string} Copyright or empty string
+     */
+    getMusicCopyright() {
+        this._ensurePlayer();
+        const ptr = this._module._adl_metaMusicCopyright(this._player);
+        return ptr ? this._module.UTF8ToString(ptr) : '';
+    }
+
+    /**
      * Play MIDI file and generate audio.
      *
      * @param {number} frames - Number of stereo frames to generate

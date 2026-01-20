@@ -448,6 +448,20 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.loadMidiData(msg.data);
                 break;
 
+            case 'getMusicTitle': {
+                const ptr = this.adl._adl_metaMusicTitle(this.midi);
+                const title = ptr ? this.adl.UTF8ToString(ptr) : '';
+                this.port.postMessage({ type: 'musicTitle', title });
+                break;
+            }
+
+            case 'getMusicCopyright': {
+                const ptr = this.adl._adl_metaMusicCopyright(this.midi);
+                const copyright = ptr ? this.adl.UTF8ToString(ptr) : '';
+                this.port.postMessage({ type: 'musicCopyright', copyright });
+                break;
+            }
+
             case 'play':
                 // If at end, rewind first so play works as expected
                 if (this.adl._adl_atEnd(this.midi) !== 0) {
