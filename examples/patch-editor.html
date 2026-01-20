@@ -695,6 +695,7 @@
                 setStatus(`Loading program ${programNumber}...`);
                 const inst = await synth.getInstrument({ percussive: false, msb: 0, lsb: 0 }, programNumber);
                 populateUIFromInstrument(inst);
+                synth.programChange(0, programNumber);
                 setStatus(`Program ${programNumber} loaded`);
             } catch (error) {
                 setStatus('Error: ' + error.message);
