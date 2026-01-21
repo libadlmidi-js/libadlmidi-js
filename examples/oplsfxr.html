@@ -1,0 +1,2933 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>oplsfxr - OPL3 Sound Effect Generator</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999;
+            --accent: #f58400;
+            /* jsfxr orange */
+            --accent-hover: #ff9d2e;
+            --border: #444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        h1 {
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        h1 span {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-self: start;
+            transform-origin: center center;
+        }
+
+        .main-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            align-self: start;
+            transform-origin: center center;
+        }
+
+        button {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.1s;
+        }
+
+        button:hover {
+            background: #444;
+            border-color: #666;
+        }
+
+        button:active {
+            background: #555;
+            transform: translateY(1px);
+        }
+
+        button.primary {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            text-align: center;
+            font-weight: 700;
+        }
+
+        button.primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        button.danger {
+            background: #e0473a;
+            border-color: #e0473a;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        button.danger:hover {
+            background: #f05a4f;
+            border-color: #f05a4f;
+        }
+
+        button.danger:active {
+            background: #c83a2f;
+        }
+
+        button.active {
+            border-left: 4px solid var(--accent);
+            background: #333;
+        }
+
+        button.caution {
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-tertiary);
+            border-color: var(--border);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        button.caution::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: repeating-linear-gradient(45deg,
+                    var(--accent) 0 10px,
+                    #2a2a2a 10px 20px);
+            pointer-events: none;
+        }
+
+        button.caution:hover {
+            background: #444;
+            border-color: #666;
+        }
+
+        button.caution:active {
+            background: #555;
+        }
+
+        button.caution.active {
+            border-left-color: var(--accent);
+        }
+
+        .param-group {
+            margin-bottom: 20px;
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .param-group h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .param-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+
+        .param-row label {
+            flex: 1;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .radio-group {
+            flex: 2;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .radio-option {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .radio-option input {
+            accent-color: var(--accent);
+        }
+
+        input[type="range"] {
+            flex: 2;
+            height: 4px;
+            -webkit-appearance: none;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--text-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent);
+        }
+
+        select {
+            flex: 2;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 12px;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .value-display {
+            width: 30px;
+            text-align: right;
+            font-size: 11px;
+            font-family: monospace;
+            color: var(--text-secondary);
+        }
+
+        #status {
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .op-title {
+            font-weight: bold;
+            color: var(--text-primary);
+            font-size: 12px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 3px;
+        }
+
+        .sidebar-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            transform-origin: center center;
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-advanced {
+            margin-top: 8px;
+        }
+
+        .sidebar-advanced summary {
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin: 6px 0 8px;
+        }
+
+        .preset-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .preset-rule-value.inherit-value {
+            opacity: 0.65;
+        }
+
+        .sidebar-empty {
+            font-size: 11px;
+            color: var(--text-secondary);
+            padding: 4px 2px;
+        }
+
+        .preset-btn-wrapper {
+            position: relative;
+            display: flex;
+        }
+
+        .preset-btn-wrapper>button:first-child {
+            flex: 1;
+            padding-right: 28px;
+        }
+
+        .preset-delete-btn {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            min-height: 18px;
+            padding: 0;
+            margin: 0;
+            background: transparent;
+            border: none;
+            border-radius: 3px;
+            color: var(--text-secondary);
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 1;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s, background 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .preset-btn-wrapper:hover .preset-delete-btn {
+            opacity: 0.7;
+        }
+
+        .preset-delete-btn:hover {
+            opacity: 1 !important;
+            color: #fff;
+            background: #e0473a;
+        }
+
+        .preset-delete-btn:active {
+            transform: translateY(-50%);
+            background: #c83a2f;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        input[type="text"] {
+            flex: 2;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+
+        input[type="number"] {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+
+        .param-row input[type="number"] {
+            flex: 2;
+        }
+
+        .export-advanced .param-row input.compact[type="number"] {
+            flex: 0 0 70px;
+            width: 70px;
+            max-width: 70px;
+        }
+
+        input[type="text"]:disabled,
+        input[type="number"]:disabled,
+        select:disabled {
+            opacity: 0.5;
+        }
+
+        .editor-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .editor-actions button {
+            text-align: center;
+            flex: 1 1 auto;
+        }
+
+        .editor-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 20px;
+        }
+
+        .editor-panel summary {
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .editor-body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .editor-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .preset-grid-header {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 1fr 1fr 1.4fr;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preset-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .preset-row {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 1fr 1fr 1.4fr;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .preset-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .json-panel {
+            margin-top: 8px;
+        }
+
+        @media (max-width: 700px) {
+
+            .preset-grid-header,
+            .preset-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Konami shake effect - chaotic multi-dimensional with natural decay */
+        /* Uses --shake-mult-x, --shake-mult-y, --shake-mult-rot set by JS for per-element randomization */
+        @keyframes shake-chaos {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            5% {
+                transform: translate(calc(var(--shake-mult-x, 1) * -1 * var(--shake-x)), calc(var(--shake-mult-y, 1) * var(--shake-y))) rotate(calc(var(--shake-mult-rot, 1) * -1 * var(--shake-rot)));
+            }
+
+            10% {
+                transform: translate(calc(var(--shake-mult-x, 1) * var(--shake-x)), calc(var(--shake-mult-y, 1) * -1 * var(--shake-y))) rotate(calc(var(--shake-mult-rot, 1) * var(--shake-rot)));
+            }
+
+            15% {
+                transform: translate(calc(var(--shake-mult-x, 1) * -0.8 * var(--shake-x)), calc(var(--shake-mult-y, 1) * 0.9 * var(--shake-y))) rotate(calc(var(--shake-mult-rot, 1) * -0.9 * var(--shake-rot)));
+            }
+
+            20% {
+                transform: translate(calc(var(--shake-mult-x, 1) * 0.9 * var(--shake-x)), calc(var(--shake-mult-y, 1) * -0.8 * var(--shake-y))) rotate(calc(var(--shake-mult-rot, 1) * 0.8 * var(--shake-rot)));
+            }
+
+            30% {
+                transform: translate(calc(var(--shake-mult-x, 1) * -0.6 * var(--shake-x)), calc(var(--shake-mult-y, 1) * 0.5 * var(--shake-y))) rotate(calc(var(--shake-mult-rot, 1) * -0.5 * var(--shake-rot)));
+            }
+
+            40% {
+                transform: translate(calc(var(--shake-mult-x, 1) * 0.4 * var(--shake-x)), calc(var(--shake-mult-y, 1) * -0.35 * var(--shake-y))) rotate(calc(var(--shake-mult-rot, 1) * 0.35 * var(--shake-rot)));
+            }
+
+            55% {
+                transform: translate(calc(var(--shake-mult-x, 1) * -0.25 * var(--shake-x)), calc(var(--shake-mult-y, 1) * 0.2 * var(--shake-y))) rotate(calc(var(--shake-mult-rot, 1) * -0.2 * var(--shake-rot)));
+            }
+
+            70% {
+                transform: translate(calc(var(--shake-mult-x, 1) * 0.12 * var(--shake-x)), calc(var(--shake-mult-y, 1) * -0.1 * var(--shake-y))) rotate(calc(var(--shake-mult-rot, 1) * 0.1 * var(--shake-rot)));
+            }
+
+            85% {
+                transform: translate(calc(var(--shake-mult-x, 1) * -0.05 * var(--shake-x)), calc(var(--shake-mult-y, 1) * 0.04 * var(--shake-y))) rotate(calc(var(--shake-mult-rot, 1) * -0.04 * var(--shake-rot)));
+            }
+
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+        }
+
+        .shake-1 {
+            --shake-x: 3px;
+            --shake-y: 2px;
+            --shake-rot: 0.5deg;
+            animation: shake-chaos 0.5s ease-out;
+            transform-origin: center center;
+        }
+
+        .shake-2 {
+            --shake-x: 6px;
+            --shake-y: 5px;
+            --shake-rot: 1.2deg;
+            animation: shake-chaos 0.7s ease-out;
+            transform-origin: center center;
+        }
+
+        .shake-3 {
+            --shake-x: 12px;
+            --shake-y: 10px;
+            --shake-rot: 2.5deg;
+            animation: shake-chaos 1s ease-out;
+            transform-origin: center center;
+        }
+
+        /* Offset timing for independent shaking */
+        .sidebar-section:nth-child(1).shake-1,
+        .sidebar-section:nth-child(1).shake-2,
+        .sidebar-section:nth-child(1).shake-3 {
+            animation-delay: 0s;
+        }
+
+        .sidebar-section:nth-child(2).shake-1,
+        .sidebar-section:nth-child(2).shake-2,
+        .sidebar-section:nth-child(2).shake-3 {
+            animation-delay: 0.02s;
+        }
+
+        .sidebar-section:nth-child(3).shake-1,
+        .sidebar-section:nth-child(3).shake-2,
+        .sidebar-section:nth-child(3).shake-3 {
+            animation-delay: 0.04s;
+        }
+
+        .sidebar-section:nth-child(4).shake-1,
+        .sidebar-section:nth-child(4).shake-2,
+        .sidebar-section:nth-child(4).shake-3 {
+            animation-delay: 0.06s;
+        }
+
+        .sidebar-section:nth-child(5).shake-1,
+        .sidebar-section:nth-child(5).shake-2,
+        .sidebar-section:nth-child(5).shake-3 {
+            animation-delay: 0.03s;
+        }
+
+        .main-panel.shake-1,
+        .main-panel.shake-2,
+        .main-panel.shake-3 {
+            animation-delay: 0.01s;
+        }
+
+        /* Invincibility mode effect */
+        @keyframes rainbow-pulse {
+            0% {
+                filter: hue-rotate(0deg) saturate(1.2) brightness(1.05);
+            }
+
+            25% {
+                filter: hue-rotate(90deg) saturate(1.3) brightness(1.1);
+            }
+
+            50% {
+                filter: hue-rotate(180deg) saturate(1.2) brightness(1.05);
+            }
+
+            75% {
+                filter: hue-rotate(270deg) saturate(1.3) brightness(1.1);
+            }
+
+            100% {
+                filter: hue-rotate(360deg) saturate(1.2) brightness(1.05);
+            }
+        }
+
+        @keyframes invincible-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px var(--glow-color, #f58400), 0 0 20px var(--glow-color, #f58400), inset 0 0 5px rgba(255, 255, 255, 0.1);
+            }
+
+            50% {
+                box-shadow: 0 0 20px var(--glow-color, #f58400), 0 0 40px var(--glow-color, #f58400), inset 0 0 10px rgba(255, 255, 255, 0.2);
+            }
+        }
+
+        @keyframes invincible-flash {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.85;
+            }
+        }
+
+        body.invincible-1 {
+            animation: rainbow-pulse 2s linear infinite;
+        }
+
+        body.invincible-1 .sidebar-section,
+        body.invincible-1 .main-panel {
+            --glow-color: #ffcc00;
+            animation: invincible-glow 0.5s ease-in-out infinite;
+        }
+
+        body.invincible-2 {
+            animation: rainbow-pulse 1.2s linear infinite;
+        }
+
+        body.invincible-2 .sidebar-section,
+        body.invincible-2 .main-panel {
+            --glow-color: #ff00ff;
+            animation: invincible-glow 0.4s ease-in-out infinite, invincible-flash 0.25s ease-in-out infinite;
+        }
+
+        body.invincible-2::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(255, 0, 255, 0.1) 100%);
+            z-index: 9999;
+        }
+
+        /* Knockoff stages - use static styles so shake animation still works */
+        body.invincible-hit-1 {
+            animation: rainbow-pulse 1.5s linear infinite;
+        }
+
+        body.invincible-hit-1 .sidebar-section,
+        body.invincible-hit-1 .main-panel {
+            box-shadow: 0 0 15px #ff6600, 0 0 30px #ff6600;
+        }
+
+        body.invincible-hit-2 {
+            animation: rainbow-pulse 3s linear infinite;
+            filter: saturate(0.8);
+        }
+
+        body.invincible-hit-2 .sidebar-section,
+        body.invincible-hit-2 .main-panel {
+            box-shadow: 0 0 8px #996600, 0 0 15px #996600;
+        }
+
+        body.invincible-hit-3 {
+            animation: none;
+            filter: saturate(0.5) brightness(0.9);
+            transition: filter 0.5s ease-out;
+        }
+
+        body.invincible-hit-3 .sidebar-section,
+        body.invincible-hit-3 .main-panel {
+            box-shadow: none;
+            transition: box-shadow 0.3s ease-out;
+        }
+
+        /* Easter egg hint */
+        .konami-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+        }
+
+        .konami-hint.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .konami-hint::before {
+            content: '💡 ';
+        }
+
+        .konami-hint .hint-dismiss {
+            margin-left: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        .konami-hint .hint-dismiss:hover {
+            opacity: 1;
+        }
+
+        /* ===== PREMIUM UI UPGRADES ===== */
+
+        /* Stage 1: Getting fancy */
+        body.invincible-1 h1 span {
+            background: linear-gradient(135deg, #f58400 0%, #ffd700 50%, #f58400 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+        }
+
+        body.invincible-1 h1::after {
+            content: ' ✨';
+            -webkit-text-fill-color: initial;
+        }
+
+        body.invincible-1 .sidebar-section,
+        body.invincible-1 .main-panel {
+            border-color: #ffd700;
+            border-width: 2px;
+        }
+
+        body.invincible-1 button.primary {
+            background: linear-gradient(135deg, #f58400 0%, #ffd700 100%);
+            border-color: #ffd700;
+        }
+
+        @keyframes feature-pop {
+            0% {
+                transform: translateX(-50%) scale(0.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Stage 2: MAXIMUM PREMIUM */
+        body.invincible-2 h1 span {
+            background: linear-gradient(135deg, #ff00ff 0%, #ffd700 25%, #00ffff 50%, #ffd700 75%, #ff00ff 100%);
+            background-size: 200% 200%;
+            animation: premium-shimmer 1s linear infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        body.invincible-2 h1::after {
+            content: ' 👑 PRO MAX ULTRA';
+            -webkit-text-fill-color: #ffd700;
+            font-size: 14px;
+            animation: premium-bounce 0.5s ease-in-out infinite;
+        }
+
+        @keyframes premium-shimmer {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 200% 50%;
+            }
+        }
+
+        @keyframes premium-bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-3px);
+            }
+        }
+
+        body.invincible-2 .sidebar-section,
+        body.invincible-2 .main-panel {
+            border: 3px solid;
+            border-image: linear-gradient(135deg, #ffd700, #ff00ff, #00ffff, #ffd700) 1;
+            border-radius: 0;
+        }
+
+        body.invincible-2 button.primary {
+            background: linear-gradient(135deg, #ff00ff 0%, #ffd700 50%, #00ffff 100%);
+            border: 2px solid #ffd700;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        body.invincible-2::after {
+            content: '⭐ PREMIUM MEMBER ⭐';
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #ffd700, #ff00ff);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            z-index: 10000;
+            animation: premium-bounce 0.5s ease-in-out infinite;
+        }
+
+        body.invincible-2 .layout::before {
+            content: '🚀 UNLIMITED BOOPS  💎 NFT Export  🧠 AI-Enhanced  ☁️ Cloud Sync  🔮 Quantum Waveforms  🦄 Unicorn Mode  ∞ Infinite Sustain  🌈 RGB Everything  ★  🚀 UNLIMITED BOOPS  💎 NFT Export  🧠 AI-Enhanced  ☁️ Cloud Sync  ★  ';
+            position: fixed;
+            top: 80px;
+            right: -100px;
+            width: 500px;
+            transform: rotate(35deg);
+            background: linear-gradient(90deg, #ff00ff, #ffd700, #00ffff, #ff00ff, #ffd700);
+            background-size: 200% 100%;
+            color: #000;
+            padding: 12px 0;
+            font-size: 11px;
+            font-weight: 900;
+            z-index: 10000;
+            white-space: nowrap;
+            overflow: hidden;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(255, 0, 255, 0.5);
+            animation: marquee-scroll-fast 5s linear infinite, rainbow-bg 2s linear infinite;
+        }
+
+        @keyframes marquee-scroll-fast {
+            0% {
+                text-indent: 0;
+            }
+
+            100% {
+                text-indent: -600px;
+            }
+        }
+
+        @keyframes rainbow-bg {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 200% 50%;
+            }
+        }
+
+        @keyframes premium-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px #ff00ff, 0 0 20px #ffd700;
+            }
+
+            50% {
+                box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+            }
+        }
+
+        /* Hit 1: Premium wobbling */
+        body.invincible-hit-1 h1::after {
+            content: ' 👑 PRO MAX';
+            -webkit-text-fill-color: #ff6600;
+            font-size: 13px;
+        }
+
+        body.invincible-hit-1 .sidebar-section,
+        body.invincible-hit-1 .main-panel {
+            border-color: #ff6600;
+            border-width: 2px;
+        }
+
+        /* Hit 2: Premium fading */
+        body.invincible-hit-2 h1::after {
+            content: ' ⭐ PRO';
+            -webkit-text-fill-color: #996600;
+            font-size: 12px;
+        }
+
+        body.invincible-hit-2 .sidebar-section,
+        body.invincible-hit-2 .main-panel {
+            border-color: #665500;
+        }
+
+        /* Hit 3: Back to peasant */
+        body.invincible-hit-3 h1 span {
+            background: none;
+            -webkit-background-clip: initial;
+            -webkit-text-fill-color: var(--accent);
+            background-clip: initial;
+        }
+
+        body.invincible-hit-3 h1::after {
+            content: '';
+        }
+
+        body.invincible-hit-3 .sidebar-section,
+        body.invincible-hit-3 .main-panel {
+            border-color: var(--border);
+            border-width: 1px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <h1><span>oplsfxr</span></h1>
+            <p style="margin:0; color:var(--text-secondary); font-size:14px;">Procedural OPL3 Sound Effect Generator</p>
+            <p style="margin:6px 0 0; color:var(--text-secondary); font-size:12px;">
+                Powered by <a href="https://github.com/libadlmidi-js/libadlmidi-js" target="_blank"
+                    rel="noreferrer">libadlmidi-js</a>.
+            </p>
+            <p style="margin:6px 0 0; color:var(--text-secondary); font-size:11px;">
+                Inspired by <a href="https://github.com/chr15m/jsfxr/" target="_blank" rel="noreferrer">jsfxr</a> /
+                <a href="https://sfxr.me" target="_blank" rel="noreferrer">sfxr.me</a> and original
+                <a href="https://www.drpetter.se/project_sfxr.html" target="_blank" rel="noreferrer">sfxr by
+                    DrPetter</a>.
+            </p>
+        </div>
+        <div id="status">Ready</div>
+    </div>
+
+    <div id="konamiHint" class="konami-hint">
+        hey try the code. you know the one. the code. the funny joke code from the game<span class="hint-dismiss"
+            onclick="this.parentElement.classList.remove('visible')">✕</span>
+    </div>
+
+    <div class="layout">
+        <div class="sidebar">
+            <div id="generators" style="display:flex; flex-direction:column; gap:10px;">
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Built-in</div>
+                    <div id="builtinPresets" class="preset-list"></div>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Custom</div>
+                    <div id="customPresets" class="preset-list"></div>
+                    <div id="customPresetsEmpty" class="sidebar-empty">No custom presets yet</div>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Actions</div>
+                    <div style="display:flex; gap:8px;">
+                        <button id="playBtn" class="primary" style="flex:1;">Play</button>
+                        <button id="panicBtn" class="danger" style="flex:1;">Stop</button>
+                    </div>
+                    <button id="mutateBtn" style="margin-top:5px;">Mutate</button>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Export</div>
+                    <div class="param-row">
+                        <label for="sampleRate">Sample Rate</label>
+                        <select id="sampleRate">
+                            <option value="22050">22050 Hz</option>
+                            <option value="44100" selected>44100 Hz</option>
+                            <option value="48000">48000 Hz</option>
+                            <option value="49716">49716 Hz</option>
+                            <option value="96000">96000 Hz</option>
+                        </select>
+                    </div>
+                    <details class="sidebar-advanced export-advanced">
+                        <summary>Advanced</summary>
+                        <div class="param-row">
+                            <label for="exportSilenceDb">Silence (dB)</label>
+                            <input id="exportSilenceDb" type="number" min="-90" max="-20" step="1" value="-60">
+                        </div>
+                        <div class="param-row">
+                            <label for="exportSilenceTail">Silence Tail (ms)</label>
+                            <input id="exportSilenceTail" class="compact" type="number" min="10" step="10" value="60">
+                        </div>
+                        <div class="param-row">
+                            <label for="exportMinSeconds">Min Duration (s)</label>
+                            <input id="exportMinSeconds" class="compact" type="number" min="0.05" step="0.05"
+                                value="0.2">
+                        </div>
+                        <div class="param-row">
+                            <label for="exportMaxSeconds">Max Duration (s)</label>
+                            <input id="exportMaxSeconds" class="compact" type="number" min="0.5" step="0.5" value="6">
+                        </div>
+                    </details>
+                    <button id="exportWavBtn" style="margin-top:5px;">Export WAV</button>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Engine</div>
+                    <details class="sidebar-advanced">
+                        <summary>Advanced</summary>
+                        <div class="param-row">
+                            <label for="emulatorSelect">Emulator</label>
+                            <select id="emulatorSelect">
+                                <option value="0" selected>Nuked OPL3</option>
+                                <option value="2">DosBox OPL3</option>
+                                <option value="3">Opal (Reality Adlib)</option>
+                                <option value="4">Java OPL3</option>
+                                <option value="5">ESFMu</option>
+                                <option value="6">MAME OPL2</option>
+                                <option value="7">YMFM OPL2</option>
+                                <option value="8">YMFM OPL3</option>
+                            </select>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div id="controls">
+
+                <!-- Performance -->
+                <div class="param-group">
+                    <h3>Performance</h3>
+                    <div class="param-row">
+                        <label>Base Note</label>
+                        <input type="range" id="base_note" min="24" max="96" value="60" oninput="updateVal(this)">
+                        <span class="value-display">60</span>
+                    </div>
+                    <div class="param-row">
+                        <label>Slide Speed</label>
+                        <input type="range" id="slide_speed" min="-480" max="480" value="0" step="1"
+                            oninput="updateVal(this)">
+                        <span class="value-display">0</span>
+                    </div>
+                </div>
+
+                <!-- Global -->
+                <div class="param-group">
+                    <h3>Synthesis</h3>
+                    <div class="param-row">
+                        <label>Algorithm</label>
+                        <div class="radio-group" role="radiogroup" aria-label="Algorithm">
+                            <label class="radio-option">
+                                <input type="radio" name="connection" value="0" checked onchange="updateState()">
+                                <span>FM (Modulator -&gt; Carrier)</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="connection" value="1" onchange="updateState()">
+                                <span>Additive (Mod + Car)</span>
+                            </label>
+                        </div>
+                        <span class="value-display"></span>
+                    </div>
+                    <div class="param-row">
+                        <label>Feedback</label>
+                        <input type="range" id="feedback" min="0" max="7" value="0" oninput="updateVal(this)">
+                        <span class="value-display">0</span>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <!-- Carrier (Op 1) -->
+                    <div class="param-group">
+                        <div class="op-title">Carrier (Op 1)</div>
+                        <div class="param-row">
+                            <label>Waveform</label>
+                            <select id="c_wave" onchange="updateState()">
+                                <option value="0">Sine</option>
+                                <option value="1">Half-Sine</option>
+                                <option value="2">Abs-Sine</option>
+                                <option value="3">Pulse-Sine</option>
+                                <option value="4">Sine - Even</option>
+                                <option value="5">Abs-Sine - Even</option>
+                                <option value="6">Square</option>
+                                <option value="7">Derived Square</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <label>Attack</label>
+                            <input type="range" id="c_attack" min="0" max="15" value="12" oninput="updateVal(this)">
+                            <span class="value-display">12</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Decay</label>
+                            <input type="range" id="c_decay" min="0" max="15" value="4" oninput="updateVal(this)">
+                            <span class="value-display">4</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Sustain</label>
+                            <input type="range" id="c_sustain" min="0" max="15" value="2" oninput="updateVal(this)">
+                            <span class="value-display">2</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Release</label>
+                            <input type="range" id="c_release" min="0" max="15" value="5" oninput="updateVal(this)">
+                            <span class="value-display">5</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Level</label>
+                            <input type="range" id="c_level" min="0" max="63" value="0" oninput="updateVal(this)">
+                            <span class="value-display">0</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Mult</label>
+                            <input type="range" id="c_mult" min="0" max="15" value="1" oninput="updateVal(this)">
+                            <span class="value-display">1</span>
+                        </div>
+                    </div>
+
+                    <!-- Modulator (Op 2) -->
+                    <div class="param-group">
+                        <div class="op-title">Modulator (Op 2)</div>
+                        <div class="param-row">
+                            <label>Waveform</label>
+                            <select id="m_wave" onchange="updateState()">
+                                <option value="0">Sine</option>
+                                <option value="1">Half-Sine</option>
+                                <option value="2">Abs-Sine</option>
+                                <option value="3">Pulse-Sine</option>
+                                <option value="4">Sine - Even</option>
+                                <option value="5">Abs-Sine - Even</option>
+                                <option value="6">Square</option>
+                                <option value="7">Derived Square</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <label>Attack</label>
+                            <input type="range" id="m_attack" min="0" max="15" value="12" oninput="updateVal(this)">
+                            <span class="value-display">12</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Decay</label>
+                            <input type="range" id="m_decay" min="0" max="15" value="4" oninput="updateVal(this)">
+                            <span class="value-display">4</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Sustain</label>
+                            <input type="range" id="m_sustain" min="0" max="15" value="2" oninput="updateVal(this)">
+                            <span class="value-display">2</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Release</label>
+                            <input type="range" id="m_release" min="0" max="15" value="5" oninput="updateVal(this)">
+                            <span class="value-display">5</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Level</label>
+                            <input type="range" id="m_level" min="0" max="63" value="40" oninput="updateVal(this)">
+                            <span class="value-display">40</span>
+                        </div>
+                        <div class="param-row">
+                            <label>Mult</label>
+                            <input type="range" id="m_mult" min="0" max="15" value="1" oninput="updateVal(this)">
+                            <span class="value-display">1</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="editor-panel">
+                    <details id="presetEditor" open>
+                        <summary>Preset Editor</summary>
+                        <div class="editor-body">
+                            <div class="param-row">
+                                <label>Preset Name</label>
+                                <input type="text" id="presetName" placeholder="Custom preset name">
+                            </div>
+                            <div class="param-row">
+                                <label>Preset Type</label>
+                                <select id="presetType">
+                                    <option value="rules">Rules</option>
+                                    <option value="random">Random</option>
+                                </select>
+                                <span class="value-display"></span>
+                            </div>
+                            <div class="preset-grid-header">
+                                <div>Param</div>
+                                <div>Mode</div>
+                                <div>Value</div>
+                                <div>Min</div>
+                                <div>Max / Choices</div>
+                            </div>
+                            <div id="presetGui" class="preset-grid"></div>
+                            <div class="editor-actions">
+                                <button id="presetPreviewBtn">Preview</button>
+                                <button id="presetSaveBtn">Save Custom</button>
+                                <button id="presetCopyBtn">Copy JSON</button>
+                                <button id="presetImportBtn">Import JSON</button>
+                            </div>
+                            <details id="presetJsonPanel" class="json-panel">
+                                <summary>Preset JSON</summary>
+                                <textarea id="presetJson" spellcheck="false" placeholder="Preset JSON"></textarea>
+                            </details>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="editor-panel">
+                    <div class="editor-title">Sound State</div>
+                    <textarea id="stateJson" spellcheck="false" placeholder="State JSON"></textarea>
+                    <div class="editor-actions">
+                        <button id="stateApplyBtn">Load State</button>
+                        <button id="stateCopyBtn">Copy State</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { Emulator } from '../src/libadlmidi.js';
+
+        let synth = null;
+        let coreSynth = null;
+        let slideInterval = null;
+        let wavUrl = null;
+        let profileModule = null;
+        let activeEmulator = Emulator.NUKED;
+
+        const PRESET_VERSION = 1;
+        const STATE_VERSION = 1;
+        const DEFAULT_SAMPLE_RATE = 44100;
+        const EXPORT_DEFAULTS = {
+            minSeconds: 0.2,
+            maxSeconds: 6,
+            tailMs: 60,
+            silenceDb: -60
+        };
+        let coreSampleRate = DEFAULT_SAMPLE_RATE;
+
+        const DEFAULT_PARAMS = {
+            base_note: 60,
+            slide_speed: 0,
+            connection: 0,
+            feedback: 0,
+            m_wave: 0, m_attack: 15, m_decay: 2, m_sustain: 3, m_release: 5, m_level: 20, m_mult: 1,
+            c_wave: 0, c_attack: 15, c_decay: 2, c_sustain: 3, c_release: 5, c_level: 0, c_mult: 1
+        };
+
+        const PRESET_BASE = {
+            connection: 0,
+            feedback: 0,
+            slide_speed: 0,
+            c_attack: 15, c_decay: 5, c_sustain: 1, c_release: 5,
+            m_attack: 15, m_decay: 5, m_sustain: 1, m_release: 5
+        };
+
+        const PARAM_DEFS = [
+            { key: 'base_note', label: 'Base Note', min: 24, max: 96 },
+            { key: 'slide_speed', label: 'Slide Speed', min: -480, max: 480 },
+            { key: 'connection', label: 'Algorithm', min: 0, max: 1 },
+            { key: 'feedback', label: 'Feedback', min: 0, max: 7 },
+            { key: 'c_wave', label: 'Carrier Wave', min: 0, max: 7 },
+            { key: 'c_attack', label: 'Carrier Attack', min: 0, max: 15 },
+            { key: 'c_decay', label: 'Carrier Decay', min: 0, max: 15 },
+            { key: 'c_sustain', label: 'Carrier Sustain', min: 0, max: 15 },
+            { key: 'c_release', label: 'Carrier Release', min: 0, max: 15 },
+            { key: 'c_level', label: 'Carrier Level', min: 0, max: 63 },
+            { key: 'c_mult', label: 'Carrier Mult', min: 0, max: 15 },
+            { key: 'm_wave', label: 'Modulator Wave', min: 0, max: 7 },
+            { key: 'm_attack', label: 'Modulator Attack', min: 0, max: 15 },
+            { key: 'm_decay', label: 'Modulator Decay', min: 0, max: 15 },
+            { key: 'm_sustain', label: 'Modulator Sustain', min: 0, max: 15 },
+            { key: 'm_release', label: 'Modulator Release', min: 0, max: 15 },
+            { key: 'm_level', label: 'Modulator Level', min: 0, max: 63 },
+            { key: 'm_mult', label: 'Modulator Mult', min: 0, max: 15 }
+        ];
+
+        const RANDOM_RULES = {
+            base_note: { type: 'range', min: 36, max: 84 },
+            slide_speed: { type: 'range', min: -300, max: 300 },
+            connection: { type: 'rand', max: 1 },
+            feedback: { type: 'rand', max: 7 },
+            m_wave: { type: 'rand', max: 7 },
+            c_wave: { type: 'rand', max: 7 },
+            m_attack: { type: 'range', min: 10, max: 15 },
+            c_attack: { type: 'range', min: 10, max: 15 },
+            m_decay: { type: 'rand', max: 15 },
+            c_decay: { type: 'rand', max: 15 },
+            m_sustain: { type: 'rand', max: 15 },
+            c_sustain: { type: 'rand', max: 15 },
+            m_release: { type: 'rand', max: 15 },
+            c_release: { type: 'rand', max: 15 },
+            m_level: { type: 'rand', max: 63 },
+            c_level: 63,
+            m_mult: { type: 'rand', max: 15 },
+            c_mult: { type: 'rand', max: 15 }
+        };
+        const BUILTIN_PRESETS = [
+            {
+                id: 'pickup',
+                name: 'Pickup / Coin',
+                rules: {
+                    base_note: { type: 'range', min: 48, max: 72 },
+                    slide_speed: { type: 'range', min: 100, max: 250 },
+                    c_wave: { type: 'rand', max: 3 },
+                    m_wave: { type: 'rand', max: 3 },
+                    c_mult: 1,
+                    m_mult: { type: 'choice', values: [1, 2, 0] },
+                    m_level: { type: 'range', min: 30, max: 50 },
+                    c_level: 63,
+                    c_attack: 15, c_decay: 8, c_sustain: 0, c_release: 8,
+                    m_attack: 15, m_decay: 8, m_sustain: 0, m_release: 8
+                }
+            },
+            {
+                id: 'laser',
+                name: 'Laser / Shoot',
+                rules: {
+                    base_note: { type: 'range', min: 72, max: 90 },
+                    slide_speed: { type: 'range', min: -20, max: 50 },
+                    c_wave: { type: 'choice', values: [0, 1, 6] },
+                    m_wave: { type: 'choice', values: [0, 2] },
+                    c_mult: 1,
+                    m_mult: { type: 'choice', values: [3, 4, 5, 6] },
+                    feedback: { type: 'range', min: 2, max: 5 },
+                    m_level: { type: 'range', min: 35, max: 50 },
+                    c_level: 63,
+                    c_attack: 15, c_decay: 8, c_sustain: 0, c_release: 6,
+                    m_attack: 15, m_decay: 3, m_sustain: 6, m_release: 4
+                }
+            },
+            {
+                id: 'explosion',
+                name: 'Explosion',
+                rules: {
+                    base_note: { type: 'range', min: 20, max: 36 },
+                    slide_speed: { type: 'range', min: -200, max: -50 },
+                    c_wave: { type: 'choice', values: [6, 7] },
+                    m_wave: { type: 'choice', values: [3, 6, 7] },
+                    feedback: { type: 'range', min: 6, max: 7 },
+                    c_mult: 0,
+                    m_mult: { type: 'choice', values: [1, 2] },
+                    c_level: 63,
+                    m_level: { type: 'range', min: 50, max: 63 },
+                    c_attack: 15, c_decay: 4, c_sustain: 3, c_release: 6,
+                    m_attack: 15, m_decay: 3, m_sustain: 2, m_release: 5
+                }
+            },
+            {
+                id: 'powerup',
+                name: 'Powerup',
+                rules: {
+                    base_note: { type: 'range', min: 48, max: 60 },
+                    slide_speed: { type: 'range', min: 50, max: 150 },
+                    c_wave: { type: 'choice', values: [0, 1, 4] },
+                    m_wave: { type: 'choice', values: [0, 1] },
+                    c_mult: 1,
+                    m_mult: { type: 'choice', values: [1, 2, 4] },
+                    m_level: { type: 'range', min: 30, max: 40 },
+                    c_level: 63,
+                    m_attack: 15, m_decay: 3, m_sustain: 10, m_release: 3
+                }
+            },
+            {
+                id: 'hit',
+                name: 'Hit / Hurt',
+                rules: {
+                    base_note: { type: 'range', min: 36, max: 60 },
+                    slide_speed: { type: 'range', min: -200, max: -100 },
+                    c_wave: { type: 'choice', values: [6, 7] },
+                    m_wave: { type: 'choice', values: [0, 6] },
+                    feedback: { type: 'range', min: 2, max: 5 },
+                    c_mult: 0,
+                    m_mult: 0,
+                    c_level: 63,
+                    m_level: { type: 'range', min: 40, max: 60 },
+                    c_attack: 15, c_decay: 12, c_sustain: 0, c_release: 8
+                }
+            },
+            {
+                id: 'jump',
+                name: 'Jump',
+                rules: {
+                    base_note: { type: 'range', min: 48, max: 72 },
+                    slide_speed: { type: 'range', min: 100, max: 200 },
+                    c_wave: 6,
+                    m_wave: 0,
+                    c_mult: 1,
+                    m_level: 0,
+                    c_level: 63,
+                    c_attack: 15, c_decay: 8, c_sustain: 4, c_release: 6
+                }
+            },
+            {
+                id: 'blip',
+                name: 'Blip / Select',
+                rules: {
+                    base_note: { type: 'range', min: 60, max: 84 },
+                    slide_speed: 0,
+                    c_wave: { type: 'choice', values: [0, 1] },
+                    c_mult: 1,
+                    m_level: 0,
+                    c_level: 63,
+                    c_attack: 15, c_decay: 5, c_sustain: 0, c_release: 10
+                }
+            },
+            {
+                id: 'random',
+                name: 'Randomize',
+                type: 'random',
+                rules: RANDOM_RULES
+            }
+        ];
+
+        const BUILTIN_IDS = new Set(BUILTIN_PRESETS.map((preset) => preset.id));
+        const STORAGE_KEY = 'oplsfxr-custom-presets';
+
+        const isPlainObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+        const clone = (value) => JSON.parse(JSON.stringify(value));
+
+        function loadCustomPresetsFromStorage() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                if (!data) return [];
+                const parsed = JSON.parse(data);
+                if (!Array.isArray(parsed)) return [];
+                // Filter out any presets with IDs that conflict with builtins
+                return parsed.filter((p) => isPlainObject(p) && p.id && !BUILTIN_IDS.has(p.id));
+            } catch (e) {
+                console.warn('Failed to load custom presets from localStorage:', e);
+                return [];
+            }
+        }
+
+        function saveCustomPresetsToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(customPresets));
+            } catch (e) {
+                console.warn('Failed to save custom presets to localStorage:', e);
+            }
+        }
+
+        const customPresets = loadCustomPresetsFromStorage();
+        let activePresetId = BUILTIN_PRESETS[0]?.id || null;
+        let params = { ...DEFAULT_PARAMS };
+
+        const rnd = (n) => Math.floor(Math.random() * (n + 1));
+        const rndRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        const choose = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+        const presetNameInput = document.getElementById('presetName');
+        const presetTypeSelect = document.getElementById('presetType');
+        const presetGui = document.getElementById('presetGui');
+        const presetJson = document.getElementById('presetJson');
+        const stateJson = document.getElementById('stateJson');
+        const sampleRateSelect = document.getElementById('sampleRate');
+        const exportSilenceDbInput = document.getElementById('exportSilenceDb');
+        const exportSilenceTailInput = document.getElementById('exportSilenceTail');
+        const exportMinSecondsInput = document.getElementById('exportMinSeconds');
+        const exportMaxSecondsInput = document.getElementById('exportMaxSeconds');
+        const emulatorSelect = document.getElementById('emulatorSelect');
+        const builtinPresetsEl = document.getElementById('builtinPresets');
+        const customPresetsEl = document.getElementById('customPresets');
+        const customPresetsEmptyEl = document.getElementById('customPresetsEmpty');
+        let presetJsonLocked = false;
+        let presetJsonDirty = false;
+        let stateJsonLocked = false;
+
+
+        function readNumber(input, fallback) {
+            const value = Number(input?.value);
+            return Number.isFinite(value) ? value : fallback;
+        }
+
+        function getRenderSampleRate() {
+            return readNumber(sampleRateSelect, DEFAULT_SAMPLE_RATE);
+        }
+
+        function getExportSettings() {
+            const sampleRate = getRenderSampleRate();
+            const minSeconds = Math.max(0, readNumber(exportMinSecondsInput, EXPORT_DEFAULTS.minSeconds));
+            const maxSeconds = Math.max(minSeconds, readNumber(exportMaxSecondsInput, EXPORT_DEFAULTS.maxSeconds));
+            const tailMs = Math.max(0, readNumber(exportSilenceTailInput, EXPORT_DEFAULTS.tailMs));
+            const silenceDb = readNumber(exportSilenceDbInput, EXPORT_DEFAULTS.silenceDb);
+            const silenceThreshold = Math.min(1, Math.max(0, Math.pow(10, silenceDb / 20)));
+            return {
+                sampleRate,
+                minSeconds,
+                maxSeconds,
+                tailMs,
+                silenceThreshold
+            };
+        }
+
+        if (emulatorSelect) {
+            activeEmulator = readNumber(emulatorSelect, Emulator.NUKED);
+        }
+
+        function setStatus(msg) {
+            document.getElementById('status').textContent = msg;
+        }
+
+        async function copyToClipboard(text, fallbackEl) {
+            if (navigator.clipboard?.writeText) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    setStatus('Copied to clipboard');
+                    return true;
+                } catch (error) { }
+            }
+
+            if (fallbackEl) {
+                fallbackEl.value = text;
+                fallbackEl.focus();
+                fallbackEl.select();
+            }
+            setStatus('Clipboard unavailable - select and copy manually');
+            return false;
+        }
+
+        async function loadProfileModule() {
+            if (profileModule) {
+                return profileModule;
+            }
+            profileModule = await import('../src/profiles/full.js');
+            return profileModule;
+        }
+
+        // Lazy initialization - synth is created on first user interaction
+        let initPromise = null;
+
+        async function ensureInitialized() {
+            // Already initialized
+            if (synth) return true;
+
+            // Initialization in progress - wait for it
+            if (initPromise) {
+                return initPromise;
+            }
+
+            // Start initialization
+            initPromise = (async () => {
+                setStatus('Loading...');
+                try {
+                    const { AdlMidi } = await loadProfileModule();
+                    synth = new AdlMidi();
+                    await synth.init();
+
+                    let emulatorError = null;
+                    try {
+                        await applyEmulatorSelection(activeEmulator);
+                    } catch (error) {
+                        emulatorError = error;
+                        console.error(error);
+                    }
+
+                    setStatus(emulatorError ? `Emulator error: ${emulatorError.message}` : 'Ready');
+
+                    // Start tracking for easter egg hint
+                    initTime = Date.now();
+
+                    return true;
+                } catch (e) {
+                    console.error(e);
+                    setStatus('Error: ' + e.message);
+                    initPromise = null; // Allow retry
+                    return false;
+                }
+            })();
+
+            return initPromise;
+        }
+
+        async function applyEmulatorSelection(emulator) {
+            if (!Number.isFinite(emulator)) {
+                return;
+            }
+            if (synth) {
+                await synth.switchEmulator(emulator);
+            }
+            if (coreSynth) {
+                const ok = coreSynth.switchEmulator(emulator);
+                if (!ok) {
+                    throw new Error(`Failed to switch core emulator ${emulator}`);
+                }
+            }
+        }
+
+        async function handleEmulatorChange() {
+            if (!emulatorSelect) {
+                return;
+            }
+            const nextEmulator = readNumber(emulatorSelect, activeEmulator);
+            const previousEmulator = activeEmulator;
+            activeEmulator = nextEmulator;
+
+            try {
+                await applyEmulatorSelection(nextEmulator);
+                if (synth) {
+                    const name = await synth.getEmulatorName();
+                    setStatus(`Emulator: ${name}`);
+                }
+            } catch (error) {
+                activeEmulator = previousEmulator;
+                emulatorSelect.value = String(previousEmulator);
+                setStatus(`Emulator error: ${error.message}`);
+            }
+        }
+
+        presetNameInput.addEventListener('input', () => {
+            updatePresetJsonFromGui();
+        });
+
+        presetTypeSelect.addEventListener('change', () => {
+            updatePresetJsonFromGui();
+        });
+
+        if (emulatorSelect) {
+            emulatorSelect.addEventListener('change', () => {
+                handleEmulatorChange();
+            });
+        }
+
+        presetJson.addEventListener('focus', () => {
+            presetJsonLocked = true;
+        });
+
+        presetJson.addEventListener('blur', () => {
+            presetJsonLocked = false;
+            if (!presetJsonDirty) {
+                updatePresetJsonFromGui();
+            }
+        });
+
+        presetJson.addEventListener('input', () => {
+            presetJsonDirty = true;
+        });
+
+        stateJson.addEventListener('focus', () => {
+            stateJsonLocked = true;
+        });
+
+        stateJson.addEventListener('blur', () => {
+            stateJsonLocked = false;
+            updateStateEditor();
+        });
+
+        function updateStateEditor() {
+            if (stateJsonLocked) {
+                return;
+            }
+            stateJson.value = serializeState();
+        }
+
+        function updatePresetRowVisibility(row) {
+            const typeSelect = row.querySelector('.preset-rule-type');
+            const valueInput = row.querySelector('.preset-rule-value');
+            const minInput = row.querySelector('.preset-rule-min');
+            const maxInput = row.querySelector('.preset-rule-max');
+            const type = typeSelect.value;
+
+            if (type === 'inherit') {
+                if (valueInput.dataset.prevValue === undefined) {
+                    valueInput.dataset.prevValue = valueInput.value;
+                }
+                valueInput.value = row.dataset.inheritValue || '';
+                valueInput.readOnly = true;
+                valueInput.disabled = false;
+                valueInput.classList.add('inherit-value');
+            } else {
+                if (valueInput.classList.contains('inherit-value')) {
+                    const prevValue = valueInput.dataset.prevValue;
+                    if (prevValue !== undefined) {
+                        if (type !== 'fixed' || prevValue !== '') {
+                            valueInput.value = prevValue;
+                        }
+                        delete valueInput.dataset.prevValue;
+                    }
+                }
+                valueInput.readOnly = false;
+                valueInput.disabled = type !== 'fixed';
+                valueInput.classList.remove('inherit-value');
+            }
+            minInput.disabled = type !== 'range';
+            maxInput.disabled = !(type === 'range' || type === 'choice' || type === 'rand');
+
+            if (type === 'choice') {
+                maxInput.placeholder = '0,2,4';
+            } else if (type === 'rand') {
+                maxInput.placeholder = 'max';
+            } else if (type === 'range') {
+                maxInput.placeholder = 'max';
+            } else {
+                maxInput.placeholder = '';
+            }
+        }
+
+        function setPresetRowRule(row, rule, inheritValue) {
+            const typeSelect = row.querySelector('.preset-rule-type');
+            const valueInput = row.querySelector('.preset-rule-value');
+            const minInput = row.querySelector('.preset-rule-min');
+            const maxInput = row.querySelector('.preset-rule-max');
+
+            if (Number.isFinite(inheritValue)) {
+                row.dataset.inheritValue = String(inheritValue);
+            } else {
+                row.dataset.inheritValue = '';
+            }
+            valueInput.value = '';
+            valueInput.readOnly = false;
+            valueInput.disabled = false;
+            valueInput.classList.remove('inherit-value');
+            delete valueInput.dataset.prevValue;
+            minInput.value = '';
+            maxInput.value = '';
+
+            if (typeof rule === 'number') {
+                typeSelect.value = 'fixed';
+                valueInput.value = rule;
+            } else if (Array.isArray(rule)) {
+                typeSelect.value = 'choice';
+                maxInput.value = rule.join(', ');
+            } else if (isPlainObject(rule)) {
+                if (rule.type === 'range') {
+                    typeSelect.value = 'range';
+                    minInput.value = Number.isFinite(Number(rule.min)) ? rule.min : '';
+                    maxInput.value = Number.isFinite(Number(rule.max)) ? rule.max : '';
+                } else if (rule.type === 'choice') {
+                    typeSelect.value = 'choice';
+                    maxInput.value = Array.isArray(rule.values) ? rule.values.join(', ') : '';
+                } else if (rule.type === 'rand') {
+                    typeSelect.value = 'rand';
+                    maxInput.value = Number.isFinite(Number(rule.max)) ? rule.max : '';
+                } else if (rule.type === 'value') {
+                    typeSelect.value = 'fixed';
+                    valueInput.value = Number.isFinite(Number(rule.value)) ? rule.value : '';
+                } else {
+                    typeSelect.value = 'inherit';
+                }
+            } else {
+                typeSelect.value = 'inherit';
+            }
+
+            updatePresetRowVisibility(row);
+        }
+
+        function parseChoiceList(text) {
+            return String(text || '')
+                .split(/[\s,]+/)
+                .map((value) => Number(value))
+                .filter((value) => Number.isFinite(value))
+                .map((value) => Math.round(value));
+        }
+
+        function getPresetRuleFromRow(row) {
+            const typeSelect = row.querySelector('.preset-rule-type');
+            const valueInput = row.querySelector('.preset-rule-value');
+            const minInput = row.querySelector('.preset-rule-min');
+            const maxInput = row.querySelector('.preset-rule-max');
+            const type = typeSelect.value;
+
+            if (type === 'inherit') {
+                return null;
+            }
+            if (type === 'fixed') {
+                const value = Number(valueInput.value);
+                return Number.isFinite(value) ? Math.round(value) : null;
+            }
+            if (type === 'range') {
+                const min = Number(minInput.value);
+                const max = Number(maxInput.value);
+                if (!Number.isFinite(min) || !Number.isFinite(max)) {
+                    return null;
+                }
+                return { type: 'range', min: Math.round(min), max: Math.round(max) };
+            }
+            if (type === 'choice') {
+                const values = parseChoiceList(maxInput.value);
+                return values.length ? { type: 'choice', values } : null;
+            }
+            if (type === 'rand') {
+                const max = Number(maxInput.value);
+                return Number.isFinite(max) ? { type: 'rand', max: Math.round(max) } : null;
+            }
+            return null;
+        }
+
+        function createPresetGui() {
+            const inheritedValues = getPresetInheritedValues(null);
+            presetGui.innerHTML = '';
+            PARAM_DEFS.forEach((def) => {
+                const row = document.createElement('div');
+                row.className = 'preset-row';
+                row.dataset.key = def.key;
+                row.innerHTML = `
+                    <div class="preset-label">${def.label}</div>
+                    <select class="preset-rule-type">
+                        <option value="inherit">Inherit</option>
+                        <option value="fixed">Fixed</option>
+                        <option value="range">Range</option>
+                        <option value="choice">Choice</option>
+                        <option value="rand">Random</option>
+                    </select>
+                    <input class="preset-rule-value" type="number" step="1" placeholder="value">
+                    <input class="preset-rule-min" type="number" step="1" placeholder="min">
+                    <input class="preset-rule-max" type="text" placeholder="max">
+                `;
+
+                const valueInput = row.querySelector('.preset-rule-value');
+                const minInput = row.querySelector('.preset-rule-min');
+                if (Number.isFinite(def.min)) {
+                    valueInput.min = def.min;
+                    minInput.min = def.min;
+                }
+                if (Number.isFinite(def.max)) {
+                    valueInput.max = def.max;
+                    minInput.max = def.max;
+                }
+
+                setPresetRowRule(row, null, inheritedValues[def.key]);
+                presetGui.appendChild(row);
+            });
+        }
+
+        function normalizePresetForGui(preset) {
+            const rules = {};
+            if (isPlainObject(preset.base)) {
+                Object.entries(preset.base).forEach(([key, value]) => {
+                    if (!(key in DEFAULT_PARAMS)) return;
+                    const baseDefault = Object.prototype.hasOwnProperty.call(PRESET_BASE, key)
+                        ? PRESET_BASE[key]
+                        : undefined;
+                    if (value !== undefined && value !== baseDefault) {
+                        rules[key] = value;
+                    }
+                });
+            }
+            if (isPlainObject(preset.rules)) {
+                Object.entries(preset.rules).forEach(([key, value]) => {
+                    rules[key] = value;
+                });
+            }
+            return { ...preset, rules };
+        }
+
+        function getPresetInheritedValues(preset) {
+            const values = { ...DEFAULT_PARAMS, ...PRESET_BASE };
+            if (preset && isPlainObject(preset.base)) {
+                Object.entries(preset.base).forEach(([key, value]) => {
+                    if (!(key in values)) return;
+                    const numeric = Number(value);
+                    if (Number.isFinite(numeric)) {
+                        values[key] = Math.round(numeric);
+                    }
+                });
+            }
+            return values;
+        }
+
+        function buildPresetFromGui() {
+            const name = presetNameInput.value.trim() || 'Custom Preset';
+            const type = presetTypeSelect.value === 'random' ? 'random' : 'rules';
+            const rules = {};
+            presetGui.querySelectorAll('.preset-row').forEach((row) => {
+                const key = row.dataset.key;
+                const rule = getPresetRuleFromRow(row);
+                if (rule !== null) {
+                    rules[key] = rule;
+                }
+            });
+
+            return {
+                name,
+                type,
+                rules
+            };
+        }
+
+        function updatePresetJsonFromGui() {
+            if (presetJsonLocked) {
+                return;
+            }
+            const preset = buildPresetFromGui();
+            presetJson.value = serializePreset(preset);
+            presetJsonDirty = false;
+        }
+
+        function syncPresetEditors(preset) {
+            const normalized = normalizePresetForGui(preset);
+            const inheritedValues = getPresetInheritedValues(preset);
+            presetNameInput.value = preset.name || '';
+            presetTypeSelect.value = preset.type === 'random' ? 'random' : 'rules';
+            presetGui.querySelectorAll('.preset-row').forEach((row) => {
+                const key = row.dataset.key;
+                setPresetRowRule(row, normalized.rules?.[key], inheritedValues[key]);
+            });
+            presetJsonDirty = false;
+            if (!presetJsonLocked) {
+                presetJson.value = serializePreset(preset);
+            }
+        }
+
+        function getPresetFromEditor() {
+            if (presetJsonDirty) {
+                const { preset, error } = parsePresetJson(presetJson.value);
+                if (error) {
+                    return { error };
+                }
+                return { preset, source: 'json' };
+            }
+
+            return { preset: buildPresetFromGui(), source: 'gui' };
+        }
+
+        createPresetGui();
+        presetGui.addEventListener('change', (event) => {
+            const row = event.target.closest('.preset-row');
+            if (!row) return;
+            if (event.target.classList.contains('preset-rule-type')) {
+                updatePresetRowVisibility(row);
+            }
+            updatePresetJsonFromGui();
+        });
+        presetGui.addEventListener('input', (event) => {
+            if (!event.target.closest('.preset-row')) return;
+            updatePresetJsonFromGui();
+        });
+
+        window.updateVal = function (el) {
+            el.nextElementSibling.textContent = el.value;
+            params[el.id] = parseInt(el.value, 10);
+            updateStateEditor();
+        };
+
+        window.updateState = function () {
+            const connectionEl = document.querySelector('input[name="connection"]:checked');
+            if (connectionEl) {
+                params.connection = parseInt(connectionEl.value, 10);
+            }
+            ['c_wave', 'm_wave'].forEach(id => {
+                params[id] = parseInt(document.getElementById(id).value, 10);
+            });
+            updateStateEditor();
+        };
+
+        function syncUI() {
+            for (let k in params) {
+                const el = document.getElementById(k);
+                if (el) {
+                    el.value = params[k];
+                    if (el.type === 'range') {
+                        el.nextElementSibling.textContent = params[k];
+                    }
+                }
+            }
+            const connectionEl = document.querySelector(`input[name="connection"][value="${params.connection}"]`);
+            if (connectionEl) {
+                connectionEl.checked = true;
+            }
+            updateStateEditor();
+        }
+
+        function evaluateRule(rule) {
+            if (typeof rule === 'number') {
+                return rule;
+            }
+            if (Array.isArray(rule)) {
+                return rule.length ? choose(rule) : null;
+            }
+            if (!isPlainObject(rule)) {
+                return null;
+            }
+
+            const type = rule.type || (Array.isArray(rule.values) ? 'choice' : 'value');
+            if (type === 'range') {
+                const min = Number(rule.min);
+                const max = Number(rule.max);
+                if (!Number.isFinite(min) || !Number.isFinite(max)) {
+                    return null;
+                }
+                return rndRange(Math.min(min, max), Math.max(min, max));
+            }
+            if (type === 'choice') {
+                if (!Array.isArray(rule.values) || !rule.values.length) {
+                    return null;
+                }
+                return choose(rule.values);
+            }
+            if (type === 'rand') {
+                const max = Number(rule.max);
+                if (!Number.isFinite(max)) {
+                    return null;
+                }
+                return rnd(Math.max(0, max));
+            }
+            if (type === 'value') {
+                const value = Number(rule.value);
+                return Number.isFinite(value) ? value : null;
+            }
+            return null;
+        }
+
+        function applyValues(values) {
+            if (!values) return;
+            Object.entries(values).forEach(([key, value]) => {
+                if (!(key in params)) return;
+                const numeric = Number(value);
+                if (Number.isFinite(numeric)) {
+                    params[key] = Math.round(numeric);
+                }
+            });
+        }
+
+        function applyRules(rules) {
+            if (!rules) return;
+            Object.entries(rules).forEach(([key, rule]) => {
+                if (!(key in params)) return;
+                const value = evaluateRule(rule);
+                if (Number.isFinite(value)) {
+                    params[key] = Math.round(value);
+                }
+            });
+        }
+
+        function randomizeAllParams() {
+            Object.keys(params).forEach((key) => {
+                if (key.includes('attack')) params[key] = rndRange(10, 15);
+                else if (key.includes('decay')) params[key] = rnd(15);
+                else if (key.includes('sustain')) params[key] = rnd(15);
+                else if (key.includes('release')) params[key] = rnd(15);
+                else if (key.includes('wave')) params[key] = rnd(7);
+                else if (key.includes('level')) params[key] = rnd(63);
+                else if (key.includes('mult')) params[key] = rnd(15);
+            });
+            params.connection = rnd(1);
+            params.feedback = rnd(7);
+            params.base_note = rndRange(36, 84);
+            params.slide_speed = rndRange(-30, 30);
+            params.c_level = 63;
+        }
+
+        function applyPresetDefinition(preset) {
+            applyValues(PRESET_BASE);
+            if (preset.base) {
+                applyValues(preset.base);
+            }
+
+            if (preset.type === 'random' && (!preset.rules || !Object.keys(preset.rules).length)) {
+                randomizeAllParams();
+                return;
+            }
+
+            applyRules(preset.rules);
+        }
+
+        function getPresetById(id) {
+            return BUILTIN_PRESETS.find((preset) => preset.id === id)
+                || customPresets.find((preset) => preset.id === id)
+                || null;
+        }
+
+        function isCustomPreset(id) {
+            return customPresets.some((preset) => preset.id === id);
+        }
+
+        function makeCustomId(seed) {
+            const base = String(seed || 'custom')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '') || 'custom';
+            let id = base;
+            let index = 1;
+            while (BUILTIN_IDS.has(id) || customPresets.some((preset) => preset.id === id)) {
+                id = `${base}-${index}`;
+                index += 1;
+            }
+            return id;
+        }
+
+        function serializePreset(preset) {
+            const data = {
+                version: PRESET_VERSION,
+                id: preset.id,
+                name: preset.name,
+                type: preset.type || 'rules'
+            };
+
+            data.base = preset.base ? clone(preset.base) : clone(PRESET_BASE);
+            data.rules = preset.rules ? clone(preset.rules) : {};
+
+            return JSON.stringify(data, null, 2);
+        }
+
+        function parsePresetJson(text) {
+            let data = null;
+            try {
+                data = JSON.parse(text);
+            } catch (error) {
+                return { error: error.message };
+            }
+
+            if (!isPlainObject(data)) {
+                return { error: 'Preset JSON must be an object' };
+            }
+
+            const preset = {
+                id: typeof data.id === 'string' ? data.id.trim() : '',
+                name: typeof data.name === 'string' ? data.name.trim() : '',
+                type: data.type === 'random' ? 'random' : 'rules',
+                base: isPlainObject(data.base) ? data.base : null,
+                rules: isPlainObject(data.rules) ? data.rules : {}
+            };
+
+            if (!preset.name) {
+                preset.name = 'Custom Preset';
+            }
+
+            return { preset };
+        }
+
+        function renderPresetList(list, container, { deletable = false } = {}) {
+            container.innerHTML = '';
+            list.forEach((preset) => {
+                const btn = document.createElement('button');
+                btn.textContent = preset.name;
+                btn.dataset.presetId = preset.id;
+                if (preset.id === 'random') {
+                    btn.classList.add('caution');
+                }
+                if (preset.id === activePresetId) {
+                    btn.classList.add('active');
+                }
+                btn.addEventListener('click', () => {
+                    applyPresetById(preset.id);
+                });
+
+                if (deletable) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'preset-btn-wrapper';
+                    wrapper.appendChild(btn);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'preset-delete-btn';
+                    deleteBtn.textContent = '×';
+                    deleteBtn.title = 'Delete preset';
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteCustomPreset(preset.id);
+                    });
+                    wrapper.appendChild(deleteBtn);
+
+                    container.appendChild(wrapper);
+                } else {
+                    container.appendChild(btn);
+                }
+            });
+        }
+
+        function renderPresetLists() {
+            renderPresetList(BUILTIN_PRESETS, builtinPresetsEl);
+            renderPresetList(customPresets, customPresetsEl, { deletable: true });
+            customPresetsEmptyEl.style.display = customPresets.length ? 'none' : 'block';
+        }
+
+        function setActivePreset(presetId) {
+            activePresetId = presetId;
+            const preset = getPresetById(presetId);
+            if (preset) {
+                syncPresetEditors(preset);
+            }
+            renderPresetLists();
+        }
+
+        async function applyPresetById(presetId, shouldPlay = true) {
+            const preset = getPresetById(presetId);
+            if (!preset) return;
+            setActivePreset(presetId);
+            applyPresetDefinition(preset);
+            syncUI();
+            if (shouldPlay) {
+                await playCurrent();
+            }
+        }
+
+        async function previewPresetFromEditor() {
+            const result = getPresetFromEditor();
+            if (result.error) {
+                setStatus(`Preset JSON error: ${result.error}`);
+                return;
+            }
+
+            const preset = result.preset;
+            if (result.source === 'json') {
+                syncPresetEditors(preset);
+            } else {
+                updatePresetJsonFromGui();
+            }
+
+            applyPresetDefinition(preset);
+            syncUI();
+            await playCurrent();
+            setStatus(`Previewing ${preset.name || 'Custom Preset'}`);
+        }
+
+        function addCustomPreset(preset) {
+            const name = (preset.name || 'Custom Preset').trim();
+            const id = makeCustomId(preset.id || name);
+            const entry = {
+                id,
+                name,
+                type: preset.type === 'random' ? 'random' : 'rules',
+                base: preset.base ? clone(preset.base) : null,
+                rules: preset.rules ? clone(preset.rules) : {}
+            };
+
+            customPresets.push(entry);
+            saveCustomPresetsToStorage();
+            setActivePreset(id);
+            return entry;
+        }
+
+        function deleteCustomPreset(presetId) {
+            const index = customPresets.findIndex((p) => p.id === presetId);
+            if (index < 0) return;
+
+            const preset = customPresets[index];
+
+            // Confirm before deleting
+            if (!confirm(`Delete preset "${preset.name}"?`)) {
+                return;
+            }
+
+            customPresets.splice(index, 1);
+            saveCustomPresetsToStorage();
+
+            // If we deleted the active preset, switch to first builtin
+            if (activePresetId === presetId) {
+                const fallback = BUILTIN_PRESETS[0]?.id || null;
+                setActivePreset(fallback);
+            } else {
+                renderPresetLists();
+            }
+
+            setStatus(`Deleted "${preset.name}"`);
+        }
+
+        function savePresetFromEditor() {
+            const result = getPresetFromEditor();
+            if (result.error) {
+                setStatus(`Preset JSON error: ${result.error}`);
+                return;
+            }
+
+            const preset = result.preset;
+            if (result.source === 'json') {
+                syncPresetEditors(preset);
+            } else {
+                updatePresetJsonFromGui();
+            }
+
+            if (activePresetId && isCustomPreset(activePresetId)) {
+                const index = customPresets.findIndex((entry) => entry.id === activePresetId);
+                if (index >= 0) {
+                    customPresets[index] = {
+                        id: activePresetId,
+                        name: preset.name,
+                        type: preset.type,
+                        base: preset.base,
+                        rules: preset.rules
+                    };
+                    saveCustomPresetsToStorage();
+                    setActivePreset(activePresetId);
+                    setStatus('Custom preset updated');
+                    return;
+                }
+            }
+
+            const entry = addCustomPreset(preset);
+            setStatus(`Custom preset saved as "${entry.name}"`);
+        }
+
+        function importPresetFromEditor() {
+            if (!presetJson.value.trim()) {
+                updatePresetJsonFromGui();
+            }
+
+            const { preset, error } = parsePresetJson(presetJson.value);
+            if (error) {
+                setStatus(`Preset JSON error: ${error}`);
+                return;
+            }
+
+            syncPresetEditors(preset);
+            const entry = addCustomPreset(preset);
+            setStatus(`Preset imported as "${entry.name}"`);
+        }
+
+        async function copyPresetFromEditor() {
+            if (!presetJsonDirty) {
+                updatePresetJsonFromGui();
+            }
+            const text = presetJson.value.trim();
+            if (!text) {
+                setStatus('No preset to copy');
+                return;
+            }
+            await copyToClipboard(text, presetJson);
+        }
+
+        function serializeState() {
+            return JSON.stringify({ version: STATE_VERSION, params: { ...params } }, null, 2);
+        }
+
+        function applyStateFromEditor() {
+            let data = null;
+            try {
+                data = JSON.parse(stateJson.value);
+            } catch (error) {
+                setStatus(`State JSON error: ${error.message}`);
+                return;
+            }
+
+            if (!isPlainObject(data)) {
+                setStatus('State JSON must be an object');
+                return;
+            }
+
+            const incoming = isPlainObject(data.params) ? data.params : data;
+            let updated = false;
+            Object.keys(params).forEach((key) => {
+                const value = Number(incoming[key]);
+                if (Number.isFinite(value)) {
+                    params[key] = Math.round(value);
+                    updated = true;
+                }
+            });
+
+            if (!updated) {
+                setStatus('State JSON did not contain any params');
+                return;
+            }
+
+            syncUI();
+            playCurrent();
+            setStatus('State loaded');
+        }
+
+        async function copyStateToClipboard() {
+            const text = serializeState();
+            stateJson.value = text;
+            await copyToClipboard(text, stateJson);
+        }
+
+        function buildInstrumentFromParams() {
+            const op1 = {
+                am: false,
+                vibrato: false,
+                sustaining: false,
+                ksr: false,
+                attack: params.c_attack,
+                decay: params.c_decay,
+                sustain: params.c_sustain,
+                release: params.c_release,
+                totalLevel: 63 - params.c_level,
+                keyScaleLevel: 0,
+                freqMult: params.c_mult,
+                waveform: params.c_wave
+            };
+
+            const op2 = {
+                am: false,
+                vibrato: false,
+                sustaining: false,
+                ksr: false,
+                attack: params.m_attack,
+                decay: params.m_decay,
+                sustain: params.m_sustain,
+                release: params.m_release,
+                totalLevel: 63 - params.m_level,
+                keyScaleLevel: 0,
+                freqMult: params.m_mult,
+                waveform: params.m_wave
+            };
+
+            return {
+                is4op: false,
+                isPseudo4op: false,
+                isBlank: false,
+                noteOffset1: 0,
+                connection1: params.connection,
+                feedback1: params.feedback,
+                operators: [op1, op2]
+            };
+        }
+
+        async function mutate() {
+            if (rnd(1)) params.base_note += rndRange(-5, 5);
+            if (rnd(1)) params.slide_speed += rndRange(-5, 5);
+            if (rnd(1)) params.m_level = Math.max(0, Math.min(63, params.m_level + rndRange(-10, 10)));
+            if (rnd(1)) params.feedback = Math.max(0, Math.min(7, params.feedback + rndRange(-1, 1)));
+            syncUI();
+            await playCurrent();
+        }
+
+        async function playCurrent() {
+            const ok = await ensureInitialized();
+            if (!ok) return;
+
+            if (slideInterval) {
+                clearInterval(slideInterval);
+                slideInterval = null;
+            }
+
+            const inst = buildInstrumentFromParams();
+            const prog = 0;
+            const ch = 0;
+
+            synth.setInstrument({ percussive: false, msb: 0, lsb: 0 }, prog, inst);
+            synth.pitchBend(ch, 8192);
+            synth.programChange(ch, prog);
+            synth.noteOff(ch, params.base_note);
+            synth.noteOn(ch, params.base_note, 127);
+
+            if (params.slide_speed !== 0) {
+                let currentPitch = 8192;
+                synth.controlChange(ch, 101, 0);
+                synth.controlChange(ch, 100, 0);
+                synth.controlChange(ch, 6, 24);
+
+                const unitsPerFrame = params.slide_speed * 10;
+
+                slideInterval = setInterval(() => {
+                    const nextPitch = currentPitch + unitsPerFrame;
+                    if (nextPitch > 16383 || nextPitch < 0) {
+                        clearInterval(slideInterval);
+                        return;
+                    }
+                    currentPitch = nextPitch;
+                    synth.pitchBend(ch, Math.floor(currentPitch));
+                }, 20);
+            }
+        }
+
+        function generateWav(samples, sampleRate, metadata = {}) {
+            const numChannels = 2;
+            const bytesPerSample = 2;
+            const numFrames = samples.length / 2;
+            const dataSize = numFrames * numChannels * bytesPerSample;
+
+            // Build INFO chunk content
+            const softwareUrl = 'https://libadlmidi-js.github.io/examples/oplsfxr.html';
+            const metadataJson = JSON.stringify({
+                version: PRESET_VERSION,
+                preset: metadata.preset || null,
+                state: metadata.state || null
+            });
+
+            // Helper to encode string to bytes (UTF-8)
+            const encoder = new TextEncoder();
+            const softwareBytes = encoder.encode(softwareUrl);
+            const metadataBytes = encoder.encode(metadataJson);
+
+            // Each INFO sub-chunk: 4-byte ID + 4-byte size + data (padded to even)
+            const isftPadded = softwareBytes.length + (softwareBytes.length % 2);
+            const icmtPadded = metadataBytes.length + (metadataBytes.length % 2);
+            const infoContentSize = 4 + (8 + isftPadded) + (8 + icmtPadded); // 'INFO' + ISFT chunk + ICMT chunk
+            const listChunkSize = 4 + infoContentSize; // 'LIST' type ID + content
+
+            // Total file size: header + fmt + data + LIST
+            const totalSize = 44 + dataSize + 8 + listChunkSize;
+            const buffer = new ArrayBuffer(totalSize);
+            const view = new DataView(buffer);
+            const bytes = new Uint8Array(buffer);
+
+            const writeString = (offset, str) => {
+                for (let i = 0; i < str.length; i++) {
+                    view.setUint8(offset + i, str.charCodeAt(i));
+                }
+            };
+
+            // RIFF header
+            writeString(0, 'RIFF');
+            view.setUint32(4, totalSize - 8, true); // File size minus RIFF header
+            writeString(8, 'WAVE');
+
+            // fmt chunk
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
+            view.setUint16(32, numChannels * bytesPerSample, true);
+            view.setUint16(34, bytesPerSample * 8, true);
+
+            // data chunk
+            writeString(36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            const int16View = new Int16Array(buffer, 44, numFrames * numChannels);
+            for (let i = 0; i < samples.length; i++) {
+                int16View[i] = Math.max(-32768, Math.min(32767, samples[i] * 32767));
+            }
+
+            // LIST INFO chunk
+            let offset = 44 + dataSize;
+            writeString(offset, 'LIST');
+            view.setUint32(offset + 4, listChunkSize, true);
+            writeString(offset + 8, 'INFO');
+            offset += 12;
+
+            // ISFT sub-chunk (software)
+            writeString(offset, 'ISFT');
+            view.setUint32(offset + 4, softwareBytes.length, true);
+            bytes.set(softwareBytes, offset + 8);
+            offset += 8 + isftPadded;
+
+            // ICMT sub-chunk (comment/metadata)
+            writeString(offset, 'ICMT');
+            view.setUint32(offset + 4, metadataBytes.length, true);
+            bytes.set(metadataBytes, offset + 8);
+
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
+        async function ensureCoreSynth(sampleRate) {
+            if (!coreSynth) {
+                const { AdlMidiCore } = await loadProfileModule();
+                coreSynth = await AdlMidiCore.create();
+                coreSampleRate = sampleRate;
+                coreSynth.init(coreSampleRate);
+                if (Number.isFinite(activeEmulator)) {
+                    const ok = coreSynth.switchEmulator(activeEmulator);
+                    if (!ok) {
+                        throw new Error(`Failed to switch core emulator ${activeEmulator}`);
+                    }
+                }
+                return coreSynth;
+            }
+            if (sampleRate !== coreSampleRate) {
+                coreSampleRate = sampleRate;
+                coreSynth.init(coreSampleRate);
+            }
+            if (Number.isFinite(activeEmulator)) {
+                const ok = coreSynth.switchEmulator(activeEmulator);
+                if (!ok) {
+                    throw new Error(`Failed to switch core emulator ${activeEmulator}`);
+                }
+            }
+            return coreSynth;
+        }
+
+        async function exportWav() {
+            const ok = await ensureInitialized();
+            if (!ok) return;
+            setStatus('Rendering WAV...');
+
+            try {
+                const {
+                    sampleRate,
+                    minSeconds,
+                    maxSeconds,
+                    tailMs,
+                    silenceThreshold
+                } = getExportSettings();
+                const core = await ensureCoreSynth(sampleRate);
+                const minFrames = Math.floor(sampleRate * minSeconds);
+                const maxFrames = Math.max(minFrames, Math.floor(sampleRate * maxSeconds));
+                const tailFrames = Math.max(1, Math.floor(sampleRate * (tailMs / 1000)));
+                const outputChunks = [];
+                const inst = buildInstrumentFromParams();
+                const prog = 0;
+                const ch = 0;
+
+                core.setNumChips(4);
+                core.setNumFourOpChannels(-1);
+                core.setBank(72);
+                core.setSoftPan(true);
+
+                core.resetFull();
+                core.setInstrument({ percussive: false, msb: 0, lsb: 0 }, prog, inst);
+                core.pitchBend(ch, 8192);
+                core.programChange(ch, prog);
+                core.noteOff(ch, params.base_note);
+                core.noteOn(ch, params.base_note, 127);
+
+                if (params.slide_speed !== 0) {
+                    core.controllerChange(ch, 101, 0);
+                    core.controllerChange(ch, 100, 0);
+                    core.controllerChange(ch, 6, 24);
+                }
+
+                const stepFrames = Math.max(1, Math.floor(sampleRate * 0.02));
+                const unitsPerStep = params.slide_speed * 10;
+                let currentPitch = 8192;
+                let slideActive = params.slide_speed !== 0;
+                let silentFrames = 0;
+                let framesRendered = 0;
+                let stoppedBySilence = false;
+
+                while (framesRendered < maxFrames) {
+                    const frames = Math.min(stepFrames, maxFrames - framesRendered);
+                    const block = core.generate(frames);
+                    outputChunks.push(block);
+                    framesRendered += frames;
+
+                    let maxSample = 0;
+                    for (let i = 0; i < block.length; i++) {
+                        const abs = Math.abs(block[i]);
+                        if (abs > maxSample) {
+                            maxSample = abs;
+                            if (maxSample > silenceThreshold) {
+                                break;
+                            }
+                        }
+                    }
+
+                    if (maxSample <= silenceThreshold) {
+                        silentFrames += frames;
+                    } else {
+                        silentFrames = 0;
+                    }
+
+                    if (slideActive && framesRendered < maxFrames) {
+                        const nextPitch = currentPitch + unitsPerStep;
+                        if (nextPitch > 16383 || nextPitch < 0) {
+                            slideActive = false;
+                        } else {
+                            currentPitch = nextPitch;
+                            core.pitchBend(ch, Math.floor(currentPitch));
+                        }
+                    }
+
+                    if (framesRendered >= minFrames && silentFrames >= tailFrames) {
+                        stoppedBySilence = true;
+                        break;
+                    }
+                }
+
+                core.noteOff(ch, params.base_note);
+
+                let targetFrames = framesRendered;
+                if (stoppedBySilence && silentFrames > tailFrames) {
+                    targetFrames = Math.max(0, framesRendered - (silentFrames - tailFrames));
+                }
+
+                const output = new Float32Array(targetFrames * 2);
+                let outOffset = 0;
+                let framesRemaining = targetFrames;
+                for (const chunk of outputChunks) {
+                    if (framesRemaining <= 0) {
+                        break;
+                    }
+                    const chunkFrames = chunk.length / 2;
+                    const copyFrames = Math.min(chunkFrames, framesRemaining);
+                    output.set(chunk.subarray(0, copyFrames * 2), outOffset * 2);
+                    outOffset += copyFrames;
+                    framesRemaining -= copyFrames;
+                }
+
+                // Build metadata for WAV INFO chunk
+                const activePreset = getPresetById(activePresetId);
+                const wavMetadata = {
+                    preset: activePreset ? { id: activePreset.id, name: activePreset.name, rules: activePreset.rules } : null,
+                    state: { ...params }
+                };
+                const wavBlob = generateWav(output, sampleRate, wavMetadata);
+                if (wavUrl) URL.revokeObjectURL(wavUrl);
+                wavUrl = URL.createObjectURL(wavBlob);
+
+                const link = document.createElement('a');
+                link.href = wavUrl;
+                link.download = `oplsfxr-${Date.now()}.wav`;
+                link.click();
+                setStatus('WAV exported');
+            } catch (error) {
+                console.error(error);
+                setStatus(`WAV error: ${error.message}`);
+            }
+        }
+
+        document.getElementById('playBtn').addEventListener('click', playCurrent);
+        document.getElementById('mutateBtn').addEventListener('click', mutate);
+        document.getElementById('exportWavBtn').addEventListener('click', exportWav);
+        document.getElementById('panicBtn').addEventListener('click', () => {
+            if (!synth) return;
+            if (slideInterval) {
+                clearInterval(slideInterval);
+                slideInterval = null;
+            }
+            synth.panic();
+            setStatus('Stopped');
+        });
+        document.getElementById('presetPreviewBtn').addEventListener('click', previewPresetFromEditor);
+        document.getElementById('presetSaveBtn').addEventListener('click', savePresetFromEditor);
+        document.getElementById('presetCopyBtn').addEventListener('click', () => {
+            copyPresetFromEditor();
+        });
+        document.getElementById('presetImportBtn').addEventListener('click', importPresetFromEditor);
+        document.getElementById('stateApplyBtn').addEventListener('click', applyStateFromEditor);
+        document.getElementById('stateCopyBtn').addEventListener('click', () => {
+            copyStateToClipboard();
+        });
+
+        // Konami code easter egg: ↑↑↓↓←→←→BA
+        const KONAMI_CODE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+        let konamiIndex = 0;
+        let konamiModeActive = false;
+
+        // Hint system - show after enough interaction
+        let interactionCount = 0;
+        let initTime = null;
+        let hintShown = false;
+        const HINT_MIN_TIME = 30000; // 30 seconds
+        const HINT_MIN_INTERACTIONS = 8;
+
+        function trackInteraction() {
+            if (hintShown || konamiModeActive) return;
+            interactionCount++;
+            checkHintConditions();
+        }
+
+        function checkHintConditions() {
+            if (hintShown || !initTime) return;
+            const elapsed = Date.now() - initTime;
+            if (elapsed >= HINT_MIN_TIME && interactionCount >= HINT_MIN_INTERACTIONS) {
+                showKonamiHint();
+            }
+        }
+
+        function showKonamiHint() {
+            if (hintShown) return;
+            hintShown = true;
+            document.getElementById('konamiHint').classList.add('visible');
+            // Auto-hide after 15 seconds
+            setTimeout(() => {
+                document.getElementById('konamiHint').classList.remove('visible');
+            }, 15000);
+        }
+
+        // Track interactions on key UI elements
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('button, .preset-item, input[type="range"]')) {
+                trackInteraction();
+            }
+        });
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('input[type="range"]')) {
+                trackInteraction();
+            }
+        });
+
+        function playKonamiSequence() {
+            if (!synth || konamiModeActive) return;
+            konamiModeActive = true;
+
+            // Build sequence: 2 powerups, random middle, 3 explosions
+            const powerup = BUILTIN_PRESETS.find((p) => p.id === 'powerup');
+            const explosion = BUILTIN_PRESETS.find((p) => p.id === 'explosion');
+            const allPlayable = BUILTIN_PRESETS.filter((p) => p.id !== 'random');
+
+            const sequence = [];
+            sequence.push(powerup, powerup);
+
+            for (let i = 0; i < 15; i++) {
+                sequence.push(allPlayable[Math.floor(Math.random() * allPlayable.length)]);
+            }
+
+            sequence.push(explosion, explosion, explosion);
+
+            const totalSounds = sequence.length;
+            let soundIndex = 0;
+
+            setStatus('🎮 SEMPER GAMES 🎮');
+
+            const playNextSound = () => {
+                if (soundIndex >= totalSounds || !konamiModeActive) {
+                    konamiModeActive = false;
+                    setStatus('🎮 You\'re Are Winner!');
+                    return;
+                }
+
+                const preset = sequence[soundIndex];
+
+                // Highlight the preset in the sidebar and apply it
+                setActivePreset(preset.id);
+                applyPresetDefinition(preset);
+                syncUI();
+                playCurrent();
+
+                setStatus(`🎮 ${preset.name} - ${soundIndex + 1}/${totalSounds}`);
+
+                const invincibilityClasses = ['invincible-1', 'invincible-2', 'invincible-hit-1', 'invincible-hit-2', 'invincible-hit-3'];
+                const clearInvincibility = () => document.body.classList.remove(...invincibilityClasses);
+
+                if (soundIndex === 0) {
+                    clearInvincibility();
+                    document.body.classList.add('invincible-1');
+                } else if (soundIndex === 1) {
+                    clearInvincibility();
+                    document.body.classList.add('invincible-2');
+                } else if (soundIndex === totalSounds - 3) {
+                    // First explosion - start losing invincibility
+                    clearInvincibility();
+                    document.body.classList.add('invincible-hit-1');
+                } else if (soundIndex === totalSounds - 2) {
+                    clearInvincibility();
+                    document.body.classList.add('invincible-hit-2');
+                } else if (soundIndex === totalSounds - 1) {
+                    // Third explosion - invincibility gone
+                    clearInvincibility();
+                    document.body.classList.add('invincible-hit-3');
+                    // Clean up after animation
+                    setTimeout(() => {
+                        document.body.classList.remove('invincible-hit-3');
+                    }, 1500);
+                }
+
+                // Screen shake for explosions (last 3 sounds)
+                const explosionIndex = soundIndex - (totalSounds - 3);
+                if (explosionIndex >= 0) {
+                    const shakeClass = `shake-${explosionIndex + 1}`;
+                    const panels = document.querySelectorAll('.sidebar-section, .main-panel');
+                    panels.forEach((el) => {
+                        el.classList.remove('shake-1', 'shake-2', 'shake-3');
+
+                        // Randomize each element's shake characteristics
+                        const xMult = 0.7 + Math.random() * 0.6;  // 0.7 to 1.3
+                        const yMult = 0.7 + Math.random() * 0.6;
+                        const rotMult = 0.5 + Math.random() * 1.0; // 0.5 to 1.5
+                        const xSign = Math.random() > 0.5 ? 1 : -1;
+                        const ySign = Math.random() > 0.5 ? 1 : -1;
+                        const delay = Math.random() * 0.05; // 0 to 50ms
+
+                        el.style.setProperty('--shake-mult-x', xMult * xSign);
+                        el.style.setProperty('--shake-mult-y', yMult * ySign);
+                        el.style.setProperty('--shake-mult-rot', rotMult * (Math.random() > 0.5 ? 1 : -1));
+                        el.style.animationDelay = `${delay}s`;
+
+                        void el.offsetWidth; // Force reflow to restart animation
+                        el.classList.add(shakeClass);
+                    });
+                }
+
+                soundIndex++;
+
+                // Variable timing
+                let delay = 180;
+                if (soundIndex === 2) {
+                    delay = 400;
+                } else if (soundIndex >= totalSounds - 3) {
+                    delay = 350;
+                }
+                setTimeout(playNextSound, delay);
+            };
+
+            playNextSound();
+        }
+
+        document.addEventListener('keydown', (event) => {
+            // Stop sequence on Escape
+            if (event.code === 'Escape' && konamiModeActive) {
+                konamiModeActive = false;
+                if (synth) synth.panic();
+                setStatus('Your wife is on the phone. It\'s an emergency.');
+                return;
+            }
+
+            // Check for konami code input
+            if (event.code === KONAMI_CODE[konamiIndex]) {
+                konamiIndex++;
+                if (konamiIndex === KONAMI_CODE.length) {
+                    konamiIndex = 0;
+                    playKonamiSequence();
+                }
+            } else {
+                konamiIndex = 0;
+                // Check if current key matches start of sequence
+                if (event.code === KONAMI_CODE[0]) {
+                    konamiIndex = 1;
+                }
+            }
+        });
+
+        // Apply initial preset
+        applyPresetById(activePresetId || 'pickup', false);
+    </script>
+</body>
+
+</html>
