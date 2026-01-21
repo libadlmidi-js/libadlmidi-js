@@ -133,6 +133,14 @@ export class AdlMidiCore {
     }
 
     /**
+     * Full reset to apply instrument/bank changes.
+     */
+    resetFull() {
+        this._ensurePlayer();
+        this._module._adl_reset(this._player);
+    }
+
+    /**
      * Panic - immediately stop all notes.
      */
     panic() {
