@@ -502,7 +502,7 @@
             }
         }
 
-        /* Konami shake effect - chaotic multi-dimensional with natural decay */
+        /* canyonami shake effect - chaotic multi-dimensional with natural decay */
         /* Uses --shake-mult-x, --shake-mult-y, --shake-mult-rot set by JS for per-element randomization */
         @keyframes shake-chaos {
             0% {
@@ -720,7 +720,7 @@
         }
 
         /* Easter egg hint */
-        .konami-hint {
+        .canyonami-hint {
             position: fixed;
             bottom: 20px;
             left: 20px;
@@ -737,24 +737,24 @@
             pointer-events: none;
         }
 
-        .konami-hint.visible {
+        .canyonami-hint.visible {
             opacity: 1;
             transform: translateY(0);
             pointer-events: auto;
         }
 
-        .konami-hint::before {
+        .canyonami-hint::before {
             content: '💡 ';
         }
 
-        .konami-hint .hint-dismiss {
+        .canyonami-hint .hint-dismiss {
             margin-left: 8px;
             color: var(--text-secondary);
             cursor: pointer;
             opacity: 0.6;
         }
 
-        .konami-hint .hint-dismiss:hover {
+        .canyonami-hint .hint-dismiss:hover {
             opacity: 1;
         }
 
@@ -986,7 +986,7 @@
         <div id="status">Ready</div>
     </div>
 
-    <div id="konamiHint" class="konami-hint">
+    <div id="canyonamiHint" class="canyonami-hint">
         hey try the code. you know the one. the code. the funny joke code from the game<span class="hint-dismiss"
             onclick="this.parentElement.classList.remove('visible')">✕</span>
     </div>
@@ -2268,7 +2268,6 @@
 
             const preset = customPresets[index];
 
-            // Confirm before deleting
             if (!confirm(`Delete preset "${preset.name}"?`)) {
                 return;
             }
@@ -2745,10 +2744,10 @@
             copyStateToClipboard();
         });
 
-        // Konami code easter egg: ↑↑↓↓←→←→BA
-        const KONAMI_CODE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
-        let konamiIndex = 0;
-        let konamiModeActive = false;
+        // canyonami code easter egg: ↑↑↓↓←→←→BA
+        const CANYONAMI_CODE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+        let canyonamiIndex = 0;
+        let canyonamiModeActive = false;
 
         // Hint system - show after enough interaction
         let interactionCount = 0;
@@ -2758,7 +2757,7 @@
         const HINT_MIN_INTERACTIONS = 8;
 
         function trackInteraction() {
-            if (hintShown || konamiModeActive) return;
+            if (hintShown || canyonamiModeActive) return;
             interactionCount++;
             checkHintConditions();
         }
@@ -2767,17 +2766,17 @@
             if (hintShown || !initTime) return;
             const elapsed = Date.now() - initTime;
             if (elapsed >= HINT_MIN_TIME && interactionCount >= HINT_MIN_INTERACTIONS) {
-                showKonamiHint();
+                showCanyonamiHint();
             }
         }
 
-        function showKonamiHint() {
+        function showCanyonamiHint() {
             if (hintShown) return;
             hintShown = true;
-            document.getElementById('konamiHint').classList.add('visible');
+            document.getElementById('canyonamiHint').classList.add('visible');
             // Auto-hide after 15 seconds
             setTimeout(() => {
-                document.getElementById('konamiHint').classList.remove('visible');
+                document.getElementById('canyonamiHint').classList.remove('visible');
             }, 15000);
         }
 
@@ -2793,9 +2792,90 @@
             }
         });
 
-        function playKonamiSequence() {
-            if (!synth || konamiModeActive) return;
-            konamiModeActive = true;
+        // CANYON.MID bar 69+ lead melody pastiche
+        // (with apologies to George Stone)
+        const JINGLE_MELODY = [
+            { note: 81, duration: 180 },  // A5
+            { note: 80, duration: 90 },   // G#5
+            { note: 76, duration: 90 },   // E5
+            { note: 80, duration: 90 },   // G#5
+            { note: 76, duration: 90 },   // E5
+            { note: 81, duration: 90 },   // A5
+            { note: 76, duration: 180 },  // E5
+            // Bar 70 - Descending run
+            { note: 78, duration: 90 },   // F#5
+            { note: 76, duration: 180 },  // E5
+            { note: 75, duration: 90 },   // D#5
+            { note: 73, duration: 90 },   // C#5
+            { note: 71, duration: 90 },   // B4
+            { note: 69, duration: 90 },   // A4
+            // Bar 71 - Ascending answer
+            { note: 68, duration: 90 },   // G#4
+            { note: 71, duration: 90 },   // B4
+            { note: 76, duration: 90 },   // E5
+            { note: 74, duration: 90 },   // D5
+            { note: 73, duration: 90 },   // C#5
+            { note: 76, duration: 90 },   // E5
+            { note: 81, duration: 90 },   // A5
+            { note: 79, duration: 90 },   // G5
+            // Bar 72 - Peak and descent
+            { note: 82, duration: 90 },   // A#5
+            { note: 78, duration: 90 },   // F#5
+            { note: 73, duration: 180 },  // C#5
+            { note: 75, duration: 90 },   // D#5
+            { note: 71, duration: 90 },   // B4
+            { note: 66, duration: 180 },  // F#4
+            // Bar 73 - Resolution phrase
+            { note: 68, duration: 270 },  // G#4
+            { note: 63, duration: 90 },   // D#4
+            { note: 64, duration: 90 },   // E4
+            { note: 66, duration: 90 },   // F#4
+            { note: 68, duration: 135 },  // G#4
+            { note: 70, duration: 135 },  // A#4
+        ];
+
+        const JINGLE_INSTRUMENT = {
+            is4op: false,
+            isPseudo4op: false,
+            isBlank: false,
+            noteOffset1: 0,
+            connection1: 0,
+            feedback1: 5,
+            operators: [
+                {  // Carrier - sustaining brass-like tone
+                    am: false,
+                    vibrato: true,
+                    sustaining: true,
+                    ksr: false,
+                    attack: 15,
+                    decay: 3,
+                    sustain: 2,
+                    release: 4,
+                    totalLevel: 0,
+                    keyScaleLevel: 1,
+                    freqMult: 1,
+                    waveform: 0
+                },
+                {
+                    am: false,
+                    vibrato: true,
+                    sustaining: true,
+                    ksr: false,
+                    attack: 15,
+                    decay: 2,
+                    sustain: 3,
+                    release: 4,
+                    totalLevel: 28,
+                    keyScaleLevel: 0,
+                    freqMult: 2,
+                    waveform: 0
+                }
+            ]
+        };
+
+        async function playCanyonamiSequence() {
+            if (!synth || canyonamiModeActive) return;
+            canyonamiModeActive = true;
 
             // Build sequence: 2 powerups, random middle, 3 explosions
             const powerup = BUILTIN_PRESETS.find((p) => p.id === 'powerup');
@@ -2811,25 +2891,117 @@
 
             sequence.push(explosion, explosion, explosion);
 
+            // === PRE-CONFIGURE ALL INSTRUMENTS ===
+            // setInstrument calls adl_reset(), so we do ALL of them up front
+            // Then during playback we only use programChange + noteOn
+
+            // Generate random params for each preset in sequence and store the instruments
+            const sequenceInstruments = [];
+            for (let i = 0; i < sequence.length; i++) {
+                // Apply the preset to get randomized params
+                applyPresetDefinition(sequence[i]);
+                sequenceInstruments.push({
+                    instrument: buildInstrumentFromParams(),
+                    note: params.base_note,
+                    slideSpeed: params.slide_speed,
+                    program: i  // Use program number = index
+                });
+            }
+
+            // Set up all effect instruments in bank 0, programs 0-19
+            for (const item of sequenceInstruments) {
+                await synth.setInstrument({ percussive: false, msb: 0, lsb: 0 }, item.program, item.instrument);
+            }
+
+            // Set up jingle instrument in bank 1, program 0
+            await synth.setInstrument({ percussive: false, msb: 1, lsb: 0 }, 0, JINGLE_INSTRUMENT);
+
             const totalSounds = sequence.length;
             let soundIndex = 0;
 
             setStatus('🎮 SEMPER GAMES 🎮');
 
+            // Jingle state (played on channel 15)
+            // "Jingle state" is an extremely good phrase btw
+            const jingleChannel = 15;
+            let jingleNoteIdx = 0;
+            let jingleLastNote = null;
+            let jingleTimer = null;
+
+            // Set jingle channel to bank 1, program 0
+            synth.controlChange(jingleChannel, 0, 1);   // Bank MSB = 1
+            synth.controlChange(jingleChannel, 32, 0);  // Bank LSB = 0
+            synth.programChange(jingleChannel, 0);
+
+            const playJingleNote = () => {
+                if (!canyonamiModeActive || !jingleTimer) return;
+
+                if (jingleLastNote !== null) {
+                    synth.noteOff(jingleChannel, jingleLastNote);
+                }
+
+                const entry = JINGLE_MELODY[jingleNoteIdx];
+                // youve jingled your last note.
+                jingleLastNote = entry.note;
+                synth.noteOn(jingleChannel, entry.note, 127);
+
+                jingleNoteIdx = (jingleNoteIdx + 1) % JINGLE_MELODY.length;
+                jingleTimer = setTimeout(playJingleNote, entry.duration);
+            };
+
+            const stopJingleLocal = () => {
+                if (jingleTimer) {
+                    clearTimeout(jingleTimer);
+                    jingleTimer = null;
+                }
+                synth.controlChange(jingleChannel, 123, 0);  // All notes off
+            };
+
+            // Effects played on channel 0, bank 0
+            const effectChannel = 0;
+            synth.controlChange(effectChannel, 0, 0);   // Bank MSB = 0
+            synth.controlChange(effectChannel, 32, 0);  // Bank LSB = 0
+
             const playNextSound = () => {
-                if (soundIndex >= totalSounds || !konamiModeActive) {
-                    konamiModeActive = false;
+                if (soundIndex >= totalSounds || !canyonamiModeActive) {
+                    stopJingleLocal();
+                    canyonamiModeActive = false;
                     setStatus('🎮 You\'re Are Winner!');
                     return;
                 }
 
                 const preset = sequence[soundIndex];
+                const item = sequenceInstruments[soundIndex];
 
-                // Highlight the preset in the sidebar and apply it
+                // Highlight the preset in the sidebar
                 setActivePreset(preset.id);
-                applyPresetDefinition(preset);
-                syncUI();
-                playCurrent();
+
+                // Play the effect sound using pre-configured instrument
+                // Switch to the correct program and play the note
+                synth.programChange(effectChannel, item.program);
+                synth.pitchBend(effectChannel, 8192);
+                synth.noteOff(effectChannel, item.note);  // Clean stop before re-trigger
+                synth.noteOn(effectChannel, item.note, 127);
+
+                // Handle pitch slide if needed
+                if (item.slideSpeed !== 0) {
+                    // Set pitch bend range to 24 semitones (matching playCurrent)
+                    synth.controlChange(effectChannel, 101, 0);  // RPN MSB
+                    synth.controlChange(effectChannel, 100, 0);  // RPN LSB
+                    synth.controlChange(effectChannel, 6, 24);   // Data Entry (pitch bend range)
+
+                    let currentPitch = 8192;
+                    const unitsPerFrame = item.slideSpeed * 10;
+                    const slideTimer = setInterval(() => {
+                        const nextPitch = currentPitch + unitsPerFrame;
+                        if (nextPitch > 16383 || nextPitch < 0) {
+                            clearInterval(slideTimer);
+                            return;
+                        }
+                        currentPitch = nextPitch;
+                        synth.pitchBend(effectChannel, Math.floor(currentPitch));
+                    }, 20);
+                }
 
                 setStatus(`🎮 ${preset.name} - ${soundIndex + 1}/${totalSounds}`);
 
@@ -2842,7 +3014,12 @@
                 } else if (soundIndex === 1) {
                     clearInvincibility();
                     document.body.classList.add('invincible-2');
+                    // Start the canyon.mid-inspired invincibility jingle!
+                    jingleTimer = true;
+                    playJingleNote();
                 } else if (soundIndex === totalSounds - 3) {
+                    // First explosion - stop the jingle
+                    stopJingleLocal();
                     // First explosion - start losing invincibility
                     clearInvincibility();
                     document.body.classList.add('invincible-hit-1');
@@ -2902,25 +3079,26 @@
 
         document.addEventListener('keydown', (event) => {
             // Stop sequence on Escape
-            if (event.code === 'Escape' && konamiModeActive) {
-                konamiModeActive = false;
+            if (event.code === 'Escape' && canyonamiModeActive) {
+                stopJingle();
+                canyonamiModeActive = false;
                 if (synth) synth.panic();
                 setStatus('Your wife is on the phone. It\'s an emergency.');
                 return;
             }
 
-            // Check for konami code input
-            if (event.code === KONAMI_CODE[konamiIndex]) {
-                konamiIndex++;
-                if (konamiIndex === KONAMI_CODE.length) {
-                    konamiIndex = 0;
-                    playKonamiSequence();
+            // Check for canyonami code input
+            if (event.code === CANYONAMI_CODE[canyonamiIndex]) {
+                canyonamiIndex++;
+                if (canyonamiIndex === CANYONAMI_CODE.length) {
+                    canyonamiIndex = 0;
+                    playCanyonamiSequence();
                 }
             } else {
-                konamiIndex = 0;
+                canyonamiIndex = 0;
                 // Check if current key matches start of sequence
-                if (event.code === KONAMI_CODE[0]) {
-                    konamiIndex = 1;
+                if (event.code === CANYONAMI_CODE[0]) {
+                    canyonamiIndex = 1;
                 }
             }
         });
