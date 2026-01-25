@@ -2,6 +2,14 @@
 
 WebAssembly build of [libADLMIDI](https://github.com/Wohlstand/libADLMIDI) - a free Software MIDI synthesizer library with OPL3 (FM synthesis) emulation.
 
+Check out some [examples](https://libadlmidi-js.github.io):
+- [oplsfxr](https://libadlmidi-js.github.io/examples/oplsfxr.html)
+- [midi player](https://libadlmidi-js.github.io/examples/player.html)
+- [keyboard](https://libadlmidi-js.github.io/examples/keyboard.html)
+- [patch editor](https://libadlmidi-js.github.io/examples/patch-editor.html)
+- [midi to wav](https://libadlmidi-js.github.io/examples/midi-to-audio.html)
+- [connect any midi controller](https://libadlmidi-js.github.io/examples/webmidi.html)
+
 ## Features
 
 - **AudioWorklet Integration**: Runs synthesis in a separate thread to prevent UI stuttering. Interoperates with all the usual browser audio APIs.
@@ -30,6 +38,34 @@ synth.noteOn(0, 60, 100);
 setTimeout(() => {
     synth.noteOff(0, 60);
 }, 1000);
+```
+
+## CDN Usage
+
+You can load the library from a CDN to use it right away.
+
+**unpkg** or **jsdelivr**:
+```html
+<script type="module">
+  import { AdlMidi } from 'https://unpkg.com/libadlmidi-js/src/profiles/light.js';
+  // or: https://cdn.jsdelivr.net/npm/libadlmidi-js/src/profiles/light.js
+  
+  const synth = new AdlMidi();
+  await synth.init();
+</script>
+```
+
+**esm.sh** requires explicit URLs:
+```html
+<script type="module">
+  import { AdlMidi } from 'https://esm.sh/libadlmidi-js/src/libadlmidi.js';
+  
+  const synth = new AdlMidi();
+  await synth.init(
+    'https://esm.sh/libadlmidi-js/dist/libadlmidi.light.processor.js?raw',
+    'https://esm.sh/libadlmidi-js/dist/libadlmidi.light.core.wasm?raw'
+  );
+</script>
 ```
 
 ## Low-Level API (Node.js / Custom Backends)
@@ -98,7 +134,6 @@ synth.noteOn(0, 60, 100);
 // You can also decode instrument data from a bank
 const decoded = decodeInstrument(bytes);
 ```
-
 ## Profiles
 
 | Profile | Emulator(s) | Usage |
