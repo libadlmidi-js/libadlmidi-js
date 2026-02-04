@@ -13,6 +13,10 @@ fi
 # Ensure ccache dir exists on host so it persists
 mkdir -p .ccache
 
+# Read EMSDK version from file or default to latest
+EMSDK_VERSION=$(cat .emsdk-version 2>/dev/null || echo "latest")
+echo ">>> Using Emscripten version: $EMSDK_VERSION"
+
 echo ">>> Starting Docker build container..."
 
 # Capture host UID/GID to use inside container
@@ -24,7 +28,7 @@ HOST_GID=$(id -g)
 docker run --rm \
     -v "$(pwd)":/src \
     -w /src \
-    emscripten/emsdk:latest \
+    emscripten/emsdk:"$EMSDK_VERSION" \
     bash -c "
         set -e
         echo '>>> Installing ccache...'

@@ -21,6 +21,7 @@ jobs:
             wasm:
               - 'libADLMIDI/**'
               - 'build.sh'
+              - '.emsdk-version'
               - 'scripts/build-*'
               - '.gitmodules'
 
