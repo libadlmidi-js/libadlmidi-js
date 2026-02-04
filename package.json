@@ -54,6 +54,7 @@
     "build:types": "tsc",
     "build:banks": "node scripts/copy-banks.js",
     "build": "npm run build:wasm && npm run build:js && npm run build:types && npm run build:banks",
+    "setup:emsdk": "bash scripts/setup-emsdk.sh",
     "clean": "rm -rf build-* dist/*.js dist/*.wasm dist/*.d.ts dist/*.map dist/fm_banks",
     "test": "npm run build:types && vitest run",
     "test:watch": "vitest",

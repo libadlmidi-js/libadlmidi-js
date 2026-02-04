@@ -15,7 +15,7 @@ const NON_PROFILE_EXPORTS = new Set(['.', './core', './structs', './dist/*']);
  * Extract profile names from scripts/build-docker-inner.sh EMULATOR_PROFILES array
  */
 function getProfilesFromBuildScript() {
-    const buildScript = fs.readFileSync('scripts/build-docker-inner.sh', 'utf-8');
+    const buildScript = fs.readFileSync('scripts/build-wasm.sh', 'utf-8');
 
     // Match lines like: "nuked|-DUSE_..."
     const profilePattern = /^\s*"([a-z]+)\|/gm;

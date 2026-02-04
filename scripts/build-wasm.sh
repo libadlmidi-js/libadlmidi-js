@@ -8,12 +8,23 @@ BUILD_ARG="${1:-all}"
 SLIM_ARG="$2"
 
 # Configure ccache
-export CCACHE_DIR=/src/.ccache
+# Use a relative path so it works in Docker (/src/.ccache) and locally (./.ccache)
+CCACHE_DIR="$(pwd)/.ccache"
+export CCACHE_DIR
 export CCACHE_MAXSIZE=500M
 export CCACHE_SLOPPINESS=pch_defines,time_macros
 
-# Ensure ccache dir exists and has correct permissions (if created by root)
+# Ensure ccache dir exists
 mkdir -p "$CCACHE_DIR"
+
+# Check if ccache is available
+if command -v ccache >/dev/null 2>&1; then
+    LAUNCHER_FLAGS="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+    echo ">>> ccache enabled"
+else
+    LAUNCHER_FLAGS=""
+    echo ">>> ccache not found, disabling"
+fi
 
 EMCC_EXPORT_FUNCS="['_adl_init','_adl_close','_adl_generate','_adl_generateFormat','_adl_play','_adl_playFormat','_adl_rt_noteOn','_adl_rt_noteOff','_adl_rt_pitchBend','_adl_rt_pitchBendML','_adl_rt_controllerChange','_adl_rt_patchChange','_adl_rt_resetState','_adl_panic','_adl_openData','_adl_openBankData','_adl_openBankFile','_adl_setBank','_adl_getBanksCount','_adl_getBankNames','_adl_reset','_adl_setNumChips','_adl_setNumFourOpsChn','_adl_getNumFourOpsChn','_adl_setVolumeRangeModel','_adl_switchEmulator','_adl_chipEmulatorName','_adl_setLoopEnabled','_adl_setLoopCount','_adl_setPercMode','_adl_setHVibrato','_adl_setHTremolo','_adl_setScaleModulators','_adl_setFullRangeBrightness','_adl_setAutoArpeggio','_adl_getAutoArpeggio','_adl_setChannelAllocMode','_adl_getChannelAllocMode','_adl_setSoftPanEnabled','_adl_setTempo','_adl_totalTimeLength','_adl_positionTell','_adl_positionSeek','_adl_positionRewind','_adl_atEnd','_adl_errorString','_adl_errorInfo','_adl_getBank','_adl_getInstrument','_adl_setInstrument','_adl_loadEmbeddedBank','_adl_reserveBanks','_adl_getNumChips','_adl_getNumChipsObtained','_adl_getVolumeRangeModel','_adl_setRunAtPcmRate','_adl_rt_bankChange','_adl_rt_bankChangeMSB','_adl_rt_bankChangeLSB','_adl_rt_noteAfterTouch','_adl_rt_channelAfterTouch','_adl_metaMusicTitle','_adl_metaMusicCopyright','_adl_linkedLibraryVersion','_adl_linkedVersion','_malloc','_free']"
 
@@ -49,11 +60,10 @@ build_profile() {
 
     if [ ! -f Makefile ]; then
         echo '>>> Configuring with emcmake...'
-        # Use ccache as compiler launcher
+        # Use ccache as compiler launcher if available
         # shellcheck disable=SC2086
         emcmake cmake ../libADLMIDI \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            $LAUNCHER_FLAGS \
             -DCMAKE_BUILD_TYPE=MinSizeRel \
             -DlibADLMIDI_SHARED=OFF \
             -DlibADLMIDI_STATIC=ON \
@@ -126,6 +136,8 @@ elif [ -n "$BUILD_ARG" ]; then
     exit 1
 fi
 
-# Show ccache stats
-echo ">>> ccache statistics:"
-ccache -s
+# Show ccache stats if available
+if command -v ccache >/dev/null 2>&1; then
+    echo ">>> ccache statistics:"
+    ccache -s
+fi

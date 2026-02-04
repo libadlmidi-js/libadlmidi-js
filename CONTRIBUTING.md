@@ -67,15 +67,25 @@ CI will fail if `package.json` is out of sync with the submodule.
 ### Build Process
 
 **WASM Build**
+
+*   **Docker (Default):** No setup required.
+    ```bash
+    npm run build:wasm
+    ```
+
+*   **Local (Faster):** Install local tools once, then build normally.
+    ```bash
+    npm run setup:emsdk
+    npm run build:wasm
+    ```
+
+*Advanced:* You can also run the script directly:
 ```bash
-npm run build:wasm      # Build all profiles
 ./build.sh nuked        # Build single profile
 ./build.sh nuked slim   # Build only slim (no embedded banks)
 ```
 
 Profiles: `nuked`, `dosbox`, `light`, `full`
-
-The build uses Docker (`emscripten/emsdk`). No local Emscripten installation needed.
 
 **JS Bundle**:
 ```bash

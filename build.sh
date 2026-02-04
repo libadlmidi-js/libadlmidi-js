@@ -2,7 +2,7 @@
 set -e
 
 # libADLMIDI-JS Build Script
-# Uses Docker emscripten/emsdk for WASM compilation with ccache support
+# Usage: ./build.sh [profile] [slim] [--local]
 
 # Initialize submodule if not already done
 if [ ! -d "libADLMIDI/.git" ] && [ ! -f "libADLMIDI/.git" ]; then
@@ -13,54 +13,89 @@ fi
 # Ensure ccache dir exists on host so it persists
 mkdir -p .ccache
 
-# Read EMSDK version from file or default to latest
-EMSDK_VERSION=$(cat .emsdk-version 2>/dev/null || echo "latest")
-echo ">>> Using Emscripten version: $EMSDK_VERSION"
+# Parse arguments
+ARGS=()
+USE_LOCAL=0
 
-echo ">>> Starting Docker build container..."
+for arg in "$@"; do
+    if [ "$arg" == "--local" ]; then
+        USE_LOCAL=1
+    else
+        ARGS+=("$arg")
+    fi
+done
 
-# Capture host UID/GID to use inside container
-HOST_UID=$(id -u)
-HOST_GID=$(id -g)
+# Check for local emsdk environment
+if [ -d ".emsdk" ]; then
+    echo ">>> Found local .emsdk directory."
+    # shellcheck disable=SC1091
+    source .emsdk/emsdk_env.sh >/dev/null
+elif command -v emcc >/dev/null 2>&1; then
+    echo ">>> Found emcc in PATH."
+fi
 
-# We run as root initially to install ccache, then switch to user
-# Note: we pass user ID/GID to create a matching user inside container
-docker run --rm \
-    -v "$(pwd)":/src \
-    -w /src \
-    emscripten/emsdk:"$EMSDK_VERSION" \
-    bash -c "
-        set -e
-        echo '>>> Installing ccache...'
-        apt-get update -qq && apt-get install -yqq ccache
+# Determine execution mode
+if [ "$USE_LOCAL" -eq 1 ] || command -v emcc >/dev/null 2>&1; then
+    echo ">>> Running Local Build..."
+    # Ensure emcc is available
+    if ! command -v emcc >/dev/null 2>&1; then
+        echo "Error: emcc not found! Run './scripts/setup-emsdk.sh' first or remove --local."
+        exit 1
+    fi
+    # Run the build script directly
+    ./scripts/build-wasm.sh "${ARGS[@]}"
+else
+    # Docker Build
+    # Read EMSDK version from file or default to latest
+    EMSDK_VERSION=$(cat .emsdk-version 2>/dev/null || echo "latest")
+    echo ">>> Using Docker Emscripten version: $EMSDK_VERSION"
 
-        # Determine user to run as
-        if [ \"$HOST_UID\" -ne 0 ]; then
-            # Check if user with this UID already exists
-            if getent passwd \"$HOST_UID\" >/dev/null; then
-                BUILD_USER=\$(getent passwd \"$HOST_UID\" | cut -d: -f1)
-                echo \">>> Using existing user: \$BUILD_USER (UID $HOST_UID)\"
-            else
-                echo \">>> Creating new user for UID $HOST_UID...\"
-                # Ensure group exists
-                if ! getent group \"$HOST_GID\" >/dev/null; then
-                    groupadd -g \"$HOST_GID\" builder
+    echo ">>> Starting Docker build container..."
+
+    # Capture host UID/GID to use inside container
+    HOST_UID=$(id -u)
+    HOST_GID=$(id -g)
+
+    # We run as root initially to install ccache, then switch to user
+    # Note: we pass user ID/GID to create a matching user inside container
+    docker run --rm \
+        -v "$(pwd)":/src \
+        -w /src \
+        emscripten/emsdk:"$EMSDK_VERSION" \
+        bash -c "
+            set -e
+            echo '>>> Installing ccache...'
+            apt-get update -qq && apt-get install -yqq ccache
+
+            # Determine user to run as
+            if [ \"$HOST_UID\" -ne 0 ]; then
+                # Check if user with this UID already exists
+                if getent passwd \"$HOST_UID\" >/dev/null; then
+                    BUILD_USER=\$(getent passwd \"$HOST_UID\" | cut -d: -f1)
+                    echo \">>> Using existing user: \$BUILD_USER (UID $HOST_UID)\"
+                else
+                    echo \">>> Creating new user for UID $HOST_UID...\"
+                    # Ensure group exists
+                    if ! getent group \"$HOST_GID\" >/dev/null; then
+                        groupadd -g \"$HOST_GID\" builder
+                    fi
+                    
+                    # Create user 'builder'
+                    # We use the existing group ID (either pre-existing or just created)
+                    useradd -u \"$HOST_UID\" -g \"$HOST_GID\" -m builder
+                    BUILD_USER=builder
                 fi
                 
-                # Create user 'builder'
-                # We use the existing group ID (either pre-existing or just created)
-                useradd -u \"$HOST_UID\" -g \"$HOST_GID\" -m builder
-                BUILD_USER=builder
+                # Switch to builder user and run the internal script
+                # Pass arguments through (use bash explicitly)
+                # Note: changed script path to scripts/build-wasm.sh
+                su \"\$BUILD_USER\" -s /bin/bash -c '. /emsdk/emsdk_env.sh && ./scripts/build-wasm.sh \"\$@\"' -- \"\$@\"
+            else
+                # Running as root (e.g. in some CI envs)
+                . /emsdk/emsdk_env.sh
+                ./scripts/build-wasm.sh \"\$@\"
             fi
-            
-            # Switch to builder user and run the internal script
-            # Pass arguments through (use bash explicitly)
-            su \"\$BUILD_USER\" -s /bin/bash -c '. /emsdk/emsdk_env.sh && ./scripts/build-docker-inner.sh \"\$1\" \"\$2\"' -- \"\$1\" \"\$2\"
-        else
-            # Running as root (e.g. in some CI envs)
-            . /emsdk/emsdk_env.sh
-            ./scripts/build-docker-inner.sh \"\$1\" \"\$2\"
-        fi
-    " -- "$1" "$2"
+        " -- "${ARGS[@]}"
+fi
 
 echo ">>> Build complete!"
