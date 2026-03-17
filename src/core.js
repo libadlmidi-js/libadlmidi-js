@@ -1121,6 +1121,26 @@ export class AdlMidiCore {
     }
 
     // =========================================================================
+    // Real-time SysEx
+    // =========================================================================
+
+    /**
+     * Send a System Exclusive (SysEx) message.
+     *
+     * @param {Uint8Array|ArrayBuffer} data - SysEx message data
+     * @returns {boolean} True if successful
+     */
+    systemExclusive(data) {
+        this._ensurePlayer();
+        const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+        const ptr = this._module._malloc(bytes.length);
+        this._module.HEAPU8.set(bytes, ptr);
+        const result = this._module._adl_rt_systemExclusive(this._player, ptr, bytes.length);
+        this._module._free(ptr);
+        return result === 0;
+    }
+
+    // =========================================================================
     // Direct Module Access
     // =========================================================================
 

@@ -670,6 +670,18 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.port.postMessage({ type: 'embeddedBankLoaded', success });
                 break;
             }
+
+            // ================== SysEx ==================
+
+            case 'systemExclusive': {
+                const bytes = new Uint8Array(msg.data);
+                const ptr = this.adl._malloc(bytes.length);
+                this.adl.HEAPU8.set(bytes, ptr);
+                const result = this.adl._adl_rt_systemExclusive(this.midi, ptr, bytes.length);
+                this.adl._free(ptr);
+                this.port.postMessage({ type: 'systemExclusiveSent', success: result === 0 });
+                break;
+            }
         }
     }
 
