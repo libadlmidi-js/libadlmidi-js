@@ -333,8 +333,8 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.port.postMessage({ type: 'configured' });
                 break;
 
-            case 'loadBank':
-                this.loadBank(msg.data);
+            case 'loadBankData':
+                this.loadBankData(msg.data);
                 break;
 
             case 'setBank': {
@@ -575,7 +575,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
         return banks;
     }
 
-    loadBank(arrayBuffer) {
+    loadBankData(arrayBuffer) {
         try {
             const data = new Uint8Array(arrayBuffer);
             const dataPtr = this.adl._malloc(data.length);

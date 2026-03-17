@@ -80,7 +80,7 @@ describe('TypeScript Definitions', () => {
             'controlChange(channel: number',
             'programChange(channel: number',
             'configure(settings: ConfigureSettings',
-            'loadBank(arrayBuffer: ArrayBuffer',
+            'loadBankData(arrayBuffer: ArrayBuffer',
             'setBank(bank: number',
             'getInstrument(bankId?:',
             'setInstrument(bankId:',
