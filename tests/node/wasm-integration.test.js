@@ -267,6 +267,20 @@ describe('WASM Emulator Switching (light profile)', () => {
         Module._adl_close(synth);
     });
 
+    it('should switch to Nuked OPL2 Lite emulator', () => {
+        const synth = Module._adl_init(44100);
+
+        const NUKED_OPL2_LITE = 11;  // ADLMIDI_EMU_NUKED_OPL2_LITE
+        const result = Module._adl_switchEmulator(synth, NUKED_OPL2_LITE);
+        expect(result).toBe(0);  // 0 = success
+
+        const namePtr = Module._adl_chipEmulatorName(synth);
+        const name = Module.UTF8ToString(namePtr);
+        expect(name).toContain('Nuked OPL2 Lite');
+
+        Module._adl_close(synth);
+    });
+
     it('should fail to switch to unavailable emulator (Opal not in light profile)', () => {
         const synth = Module._adl_init(44100);
 

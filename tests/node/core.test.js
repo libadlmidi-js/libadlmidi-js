@@ -435,6 +435,12 @@ describe('AdlMidiCore Emulator Switching', () => {
         expect(result).toBe(true);
         expect(synth.getEmulatorName()).toContain('Nuked');
     });
+
+    it('should switch to Nuked OPL2 Lite emulator', () => {
+        const result = synth.switchEmulator(11); // ADLMIDI_EMU_NUKED_OPL2_LITE
+        expect(result).toBe(true);
+        expect(synth.getEmulatorName()).toContain('Nuked OPL2 Lite');
+    });
 });
 
 describe('AdlMidiCore Direct Module Access', () => {

@@ -74,7 +74,7 @@
  */
 
 /**
- * Available OPL3 emulator cores.
+ * Available OPL2/OPL3 emulator cores.
  * Use with switchEmulator() to change the synthesis engine at runtime.
  * Note: Only emulators compiled into the current profile are available.
  * @readonly
@@ -103,6 +103,8 @@ export const Emulator = Object.freeze({
     NUKED_OPL2_LLE: 9,
     /** Nuked OPL3 LLE - Transistor-level emulation */
     NUKED_OPL3_LLE: 10,
+    /** Nuked OPL2 Lite - Lightweight OPL2 emulation for AdLib-era music */
+    NUKED_OPL2_LITE: 11,
 });
 
 export class AdlMidi {
