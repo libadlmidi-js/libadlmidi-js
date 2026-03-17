@@ -899,9 +899,20 @@ export class AdlMidi {
      */
     async getTrackTitle(index) {
         return new Promise((resolve) => {
-            this.#onceMessage('trackTitle', /** @param {{title: string}} msg */(msg) => {
-                resolve(msg.title);
-            });
+            // Use filtered handler instead of #onceMessage to correlate
+            // responses by index, allowing concurrent lookups
+            const type = 'trackTitle';
+            if (!this.#messageHandlers.has(type)) {
+                this.#messageHandlers.set(type, new Set());
+            }
+            /** @param {{title: string, index: number}} msg */
+            const handler = (msg) => {
+                if (msg.index === index) {
+                    this.#messageHandlers.get(type)?.delete(handler);
+                    resolve(msg.title);
+                }
+            };
+            this.#messageHandlers.get(type)?.add(handler);
             this.#send({ type: 'getTrackTitle', index });
         });
     }
