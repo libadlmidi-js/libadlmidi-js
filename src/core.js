@@ -16,6 +16,9 @@ import {
     encodeInstrument,
 } from './utils/struct.js';
 
+import { Emulator } from './utils/constants.js';
+export { Emulator };
+
 /**
  * Low-level OPL3 synthesis interface.
  *
