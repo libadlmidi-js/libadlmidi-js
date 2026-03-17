@@ -102,8 +102,8 @@ describe('AdlMidiCore Configuration', () => {
     });
 
     it('should set soft pan', () => {
-        synth.setSoftPan(true);
-        synth.setSoftPan(false);
+        synth.setSoftPanEnabled(true);
+        synth.setSoftPanEnabled(false);
         // No error = success
     });
 

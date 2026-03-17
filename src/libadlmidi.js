@@ -516,6 +516,14 @@ export class AdlMidi {
     }
 
     /**
+     * Enable/disable soft stereo panning
+     * @param {boolean} enabled
+     */
+    setSoftPanEnabled(enabled) {
+        this.#send({ type: 'setSoftPanEnabled', enabled });
+    }
+
+    /**
      * Enable/disable deep vibrato
      * @param {boolean} enabled
      */
