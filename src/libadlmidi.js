@@ -546,7 +546,7 @@ export class AdlMidi {
      * - nuked profile: NUKED only
      * - dosbox profile: DOSBOX only  
      * - light profile: NUKED, DOSBOX
-     * - full profile: NUKED, DOSBOX, OPAL, JAVA, ESFMU, YMFM_OPL2, YMFM_OPL3
+     * - full profile: NUKED, DOSBOX, OPAL, JAVA, ESFMu, YMFM_OPL2, YMFM_OPL3
      * 
      * @param {number} emulator - Emulator ID from the Emulator enum
      * @returns {Promise<void>} Resolves when emulator is switched, rejects if unavailable
