@@ -567,6 +567,41 @@ describe('AdlMidiCore Emulator Switching', () => {
     });
 });
 
+describe('AdlMidiCore Bank Management', () => {
+    let synth;
+    beforeAll(async () => {
+        synth = await AdlMidiCore.create({ corePath: CORE_PATH });
+        synth.init(44100);
+    });
+    afterAll(() => synth?.close());
+
+    it('should reserve banks', () => {
+        const result = synth.reserveBanks(5);
+        expect(typeof result).toBe('boolean');
+    });
+
+    it('should load embedded bank into custom slot', () => {
+        const bankId = { percussive: false, msb: 0, lsb: 0 };
+        const result = synth.loadEmbeddedBank(bankId, 10);
+        expect(result).toBe(true);
+    });
+
+    it('should get bank ID', () => {
+        const bankId = { percussive: false, msb: 0, lsb: 0 };
+        const id = synth.getBankId(bankId);
+        expect(id).toHaveProperty('percussive');
+        expect(id).toHaveProperty('msb');
+        expect(id).toHaveProperty('lsb');
+    });
+
+    it('should remove bank', () => {
+        const bankId = { percussive: false, msb: 1, lsb: 0 };
+        synth.loadEmbeddedBank(bankId, 5);
+        const result = synth.removeBank(bankId);
+        expect(typeof result).toBe('boolean');
+    });
+});
+
 describe('AdlMidiCore Direct Module Access', () => {
     let synth;
 

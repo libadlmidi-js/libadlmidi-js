@@ -594,6 +594,82 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._adl_reset(this.midi);
                 this.playMode = 'realtime';
                 break;
+
+            // ================== Bank Management ==================
+
+            case 'reserveBanks': {
+                const result = this.adl._adl_reserveBanks(this.midi, msg.count);
+                this.port.postMessage({ type: 'banksReserved', success: result === 0 });
+                break;
+            }
+
+            case 'getBankId': {
+                const bankIdPtr = this.adl._malloc(4);
+                this.adl.HEAPU8[bankIdPtr] = msg.bankId.percussive ? 1 : 0;
+                this.adl.HEAPU8[bankIdPtr + 1] = msg.bankId.msb || 0;
+                this.adl.HEAPU8[bankIdPtr + 2] = msg.bankId.lsb || 0;
+
+                const bankPtr = this.adl._malloc(AdlMidiProcessor.SIZEOF_ADL_BANK);
+                const bankResult = this.adl._adl_getBank(this.midi, bankIdPtr, 0, bankPtr);
+
+                let id = null;
+                if (bankResult === 0) {
+                    const outIdPtr = this.adl._malloc(4);
+                    const idResult = this.adl._adl_getBankId(this.midi, bankPtr, outIdPtr);
+                    if (idResult === 0) {
+                        id = {
+                            percussive: this.adl.HEAPU8[outIdPtr],
+                            msb: this.adl.HEAPU8[outIdPtr + 1],
+                            lsb: this.adl.HEAPU8[outIdPtr + 2],
+                        };
+                    }
+                    this.adl._free(outIdPtr);
+                }
+                this.adl._free(bankIdPtr);
+                this.adl._free(bankPtr);
+                this.port.postMessage({ type: 'bankId', id });
+                break;
+            }
+
+            case 'removeBank': {
+                const bankIdPtr = this.adl._malloc(4);
+                this.adl.HEAPU8[bankIdPtr] = msg.bankId.percussive ? 1 : 0;
+                this.adl.HEAPU8[bankIdPtr + 1] = msg.bankId.msb || 0;
+                this.adl.HEAPU8[bankIdPtr + 2] = msg.bankId.lsb || 0;
+
+                const bankPtr = this.adl._malloc(AdlMidiProcessor.SIZEOF_ADL_BANK);
+                const bankResult = this.adl._adl_getBank(this.midi, bankIdPtr, 0, bankPtr);
+
+                let success = false;
+                if (bankResult === 0) {
+                    success = this.adl._adl_removeBank(this.midi, bankPtr) === 0;
+                }
+
+                this.adl._free(bankIdPtr);
+                this.adl._free(bankPtr);
+                this.port.postMessage({ type: 'bankRemoved', success });
+                break;
+            }
+
+            case 'loadEmbeddedBank': {
+                const bankIdPtr = this.adl._malloc(4);
+                this.adl.HEAPU8[bankIdPtr] = msg.bankId.percussive ? 1 : 0;
+                this.adl.HEAPU8[bankIdPtr + 1] = msg.bankId.msb || 0;
+                this.adl.HEAPU8[bankIdPtr + 2] = msg.bankId.lsb || 0;
+
+                const bankPtr = this.adl._malloc(AdlMidiProcessor.SIZEOF_ADL_BANK);
+                const bankResult = this.adl._adl_getBank(this.midi, bankIdPtr, 1, bankPtr);
+
+                let success = false;
+                if (bankResult === 0) {
+                    success = this.adl._adl_loadEmbeddedBank(this.midi, bankPtr, msg.num) === 0;
+                }
+
+                this.adl._free(bankIdPtr);
+                this.adl._free(bankPtr);
+                this.port.postMessage({ type: 'embeddedBankLoaded', success });
+                break;
+            }
         }
     }
 

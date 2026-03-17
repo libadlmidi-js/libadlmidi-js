@@ -905,6 +905,117 @@ export class AdlMidiCore {
     }
 
     // =========================================================================
+    // Bank Management
+    // =========================================================================
+
+    /**
+     * Reserve a number of banks.
+     *
+     * @param {number} count - Number of banks to reserve
+     * @returns {boolean} True if successful
+     */
+    reserveBanks(count) {
+        this._ensurePlayer();
+        return this._module._adl_reserveBanks(this._player, count) === 0;
+    }
+
+    /**
+     * Get the bank ID for a given bank identifier.
+     *
+     * @param {Object} bankId - Bank identifier
+     * @param {boolean|number} bankId.percussive - True/1 for percussion, false/0 for melodic
+     * @param {number} bankId.msb - Bank MSB
+     * @param {number} bankId.lsb - Bank LSB
+     * @returns {{percussive: number, msb: number, lsb: number}|null} Bank ID or null if not found
+     */
+    getBankId(bankId) {
+        this._ensurePlayer();
+        const bankIdPtr = this._module._malloc(SIZEOF_ADL_BANK_ID);
+        this._module.HEAPU8[bankIdPtr] = bankId.percussive ? 1 : 0;
+        this._module.HEAPU8[bankIdPtr + 1] = bankId.msb || 0;
+        this._module.HEAPU8[bankIdPtr + 2] = bankId.lsb || 0;
+
+        const bankPtr = this._module._malloc(SIZEOF_ADL_BANK);
+        const bankResult = this._module._adl_getBank(this._player, bankIdPtr, 0, bankPtr);
+
+        let result = null;
+        if (bankResult === 0) {
+            const outIdPtr = this._module._malloc(SIZEOF_ADL_BANK_ID);
+            const idResult = this._module._adl_getBankId(this._player, bankPtr, outIdPtr);
+            if (idResult === 0) {
+                result = {
+                    percussive: this._module.HEAPU8[outIdPtr],
+                    msb: this._module.HEAPU8[outIdPtr + 1],
+                    lsb: this._module.HEAPU8[outIdPtr + 2],
+                };
+            }
+            this._module._free(outIdPtr);
+        }
+        this._module._free(bankIdPtr);
+        this._module._free(bankPtr);
+        return result;
+    }
+
+    /**
+     * Remove a bank by its identifier.
+     *
+     * @param {Object} bankId - Bank identifier
+     * @param {boolean|number} bankId.percussive - True/1 for percussion, false/0 for melodic
+     * @param {number} bankId.msb - Bank MSB
+     * @param {number} bankId.lsb - Bank LSB
+     * @returns {boolean} True if successfully removed
+     */
+    removeBank(bankId) {
+        this._ensurePlayer();
+        const bankIdPtr = this._module._malloc(SIZEOF_ADL_BANK_ID);
+        this._module.HEAPU8[bankIdPtr] = bankId.percussive ? 1 : 0;
+        this._module.HEAPU8[bankIdPtr + 1] = bankId.msb || 0;
+        this._module.HEAPU8[bankIdPtr + 2] = bankId.lsb || 0;
+
+        const bankPtr = this._module._malloc(SIZEOF_ADL_BANK);
+        const bankResult = this._module._adl_getBank(this._player, bankIdPtr, 0, bankPtr);
+
+        let success = false;
+        if (bankResult === 0) {
+            success = this._module._adl_removeBank(this._player, bankPtr) === 0;
+        }
+
+        this._module._free(bankIdPtr);
+        this._module._free(bankPtr);
+        return success;
+    }
+
+    /**
+     * Load an embedded bank into a custom bank slot.
+     *
+     * @param {Object} bankId - Target bank identifier
+     * @param {boolean|number} bankId.percussive - True/1 for percussion, false/0 for melodic
+     * @param {number} bankId.msb - Bank MSB
+     * @param {number} bankId.lsb - Bank LSB
+     * @param {number} num - Embedded bank number to load
+     * @returns {boolean} True if successful
+     */
+    loadEmbeddedBank(bankId, num) {
+        this._ensurePlayer();
+        const bankIdPtr = this._module._malloc(SIZEOF_ADL_BANK_ID);
+        this._module.HEAPU8[bankIdPtr] = bankId.percussive ? 1 : 0;
+        this._module.HEAPU8[bankIdPtr + 1] = bankId.msb || 0;
+        this._module.HEAPU8[bankIdPtr + 2] = bankId.lsb || 0;
+
+        const bankPtr = this._module._malloc(SIZEOF_ADL_BANK);
+        const bankResult = this._module._adl_getBank(this._player, bankIdPtr, 1, bankPtr);
+
+        let success = false;
+        if (bankResult === 0) {
+            success = this._module._adl_loadEmbeddedBank(this._player, bankPtr, num) === 0;
+        }
+
+        this._module._free(bankIdPtr);
+        this._module._free(bankPtr);
+        return success;
+    }
+
+    // =========================================================================
     // Instrument Access
     // =========================================================================
 
