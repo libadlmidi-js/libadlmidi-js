@@ -618,6 +618,23 @@ describe('AdlMidiCore System Exclusive', () => {
     });
 });
 
+describe('AdlMidiCore Channel Description', () => {
+    let synth;
+    beforeAll(async () => {
+        synth = await AdlMidiCore.create({ corePath: CORE_PATH });
+        synth.init(44100);
+    });
+    afterAll(() => synth?.close());
+
+    it('should describe channels', () => {
+        const result = synth.describeChannels();
+        expect(result).toHaveProperty('text');
+        expect(result).toHaveProperty('attr');
+        expect(typeof result.text).toBe('string');
+        expect(typeof result.attr).toBe('string');
+    });
+});
+
 describe('AdlMidiCore Direct Module Access', () => {
     let synth;
 

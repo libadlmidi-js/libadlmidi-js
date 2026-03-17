@@ -682,6 +682,21 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.port.postMessage({ type: 'systemExclusiveSent', success: result === 0 });
                 break;
             }
+
+            // ================== Debug / Diagnostics ==================
+
+            case 'describeChannels': {
+                const size = 256;
+                const textPtr = this.adl._malloc(size);
+                const attrPtr = this.adl._malloc(size);
+                this.adl._adl_describeChannels(this.midi, textPtr, attrPtr, size);
+                const text = this.adl.UTF8ToString(textPtr);
+                const attr = this.adl.UTF8ToString(attrPtr);
+                this.adl._free(textPtr);
+                this.adl._free(attrPtr);
+                this.port.postMessage({ type: 'channelsDescribed', text, attr });
+                break;
+            }
         }
     }
 

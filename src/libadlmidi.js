@@ -809,6 +809,21 @@ export class AdlMidi {
         });
     }
 
+    // ================== Debug / Diagnostics API ==================
+
+    /**
+     * Describe the current state of all channels (debug utility)
+     * @returns {Promise<{text: string, attr: string}>} Channel state description
+     */
+    async describeChannels() {
+        return new Promise((resolve) => {
+            this.#onceMessage('channelsDescribed', /** @param {{text: string, attr: string}} msg */(msg) => {
+                resolve({ text: msg.text, attr: msg.attr });
+            });
+            this.#send({ type: 'describeChannels' });
+        });
+    }
+
     /**
      * Reset the synthesizer
      * @returns {void}

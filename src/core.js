@@ -1141,6 +1141,28 @@ export class AdlMidiCore {
     }
 
     // =========================================================================
+    // Debug / Diagnostics
+    // =========================================================================
+
+    /**
+     * Describe the current state of all channels (debug utility).
+     *
+     * @returns {{text: string, attr: string}} Channel state description
+     */
+    describeChannels() {
+        this._ensurePlayer();
+        const size = 256;
+        const textPtr = this._module._malloc(size);
+        const attrPtr = this._module._malloc(size);
+        this._module._adl_describeChannels(this._player, textPtr, attrPtr, size);
+        const text = this._module.UTF8ToString(textPtr);
+        const attr = this._module.UTF8ToString(attrPtr);
+        this._module._free(textPtr);
+        this._module._free(attrPtr);
+        return { text, attr };
+    }
+
+    // =========================================================================
     // Direct Module Access
     // =========================================================================
 
