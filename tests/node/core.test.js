@@ -5,7 +5,7 @@
  * for Node.js / non-browser use cases.
  */
 
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
@@ -112,9 +112,28 @@ describe('AdlMidiCore Configuration', () => {
         synth.setDeepVibrato(false);
     });
 
+    it('should get/set deep vibrato', () => {
+        synth.setDeepVibrato(true);
+        expect(synth.getDeepVibrato()).toBe(true);
+        synth.setDeepVibrato(false);
+        expect(synth.getDeepVibrato()).toBe(false);
+    });
+
     it('should set deep tremolo', () => {
         synth.setDeepTremolo(true);
         synth.setDeepTremolo(false);
+    });
+
+    it('should get/set deep tremolo', () => {
+        synth.setDeepTremolo(true);
+        expect(synth.getDeepTremolo()).toBe(true);
+        synth.setDeepTremolo(false);
+        expect(synth.getDeepTremolo()).toBe(false);
+    });
+
+    it('should get number of 4-op channels obtained', () => {
+        const obtained = synth.getNumFourOpChannelsObtained();
+        expect(typeof obtained).toBe('number');
     });
 
     it('should get number of chips', () => {
@@ -139,6 +158,18 @@ describe('AdlMidiCore Configuration', () => {
         const result = synth.setRunAtPcmRate(true);
         expect(result).toBe(true);
         synth.setRunAtPcmRate(false);
+    });
+
+    it('should get error string (static)', async () => {
+        const core = await AdlMidiCore.create({ corePath: CORE_PATH });
+        const err = core.getErrorString();
+        expect(typeof err).toBe('string');
+        core.close();
+    });
+
+    it('should get error info', () => {
+        const err = synth.getErrorInfo();
+        expect(typeof err).toBe('string');
     });
 
     it('should get library version strings', () => {
@@ -406,6 +437,99 @@ describe('AdlMidiCore MIDI Playback', () => {
         synth.loadMidi(midiData);
         const copyright = synth.getMusicCopyright();
         expect(typeof copyright).toBe('string');
+    });
+});
+
+describe('AdlMidiCore Loop Control', () => {
+    let synth;
+    beforeAll(async () => {
+        synth = await AdlMidiCore.create({ corePath: CORE_PATH });
+        synth.init(44100);
+        const midiData = readFileSync(join(__dirname, '..', '..', 'test-files', 'canyon.mid'));
+        synth.loadMidi(midiData);
+    });
+    afterAll(() => synth?.close());
+
+    it('should set loop count', () => {
+        expect(() => synth.setLoopCount(2)).not.toThrow();
+        expect(() => synth.setLoopCount(-1)).not.toThrow();
+        expect(() => synth.setLoopCount(0)).not.toThrow();
+    });
+
+    it('should set loop hooks only', () => {
+        expect(() => synth.setLoopHooksOnly(true)).not.toThrow();
+        expect(() => synth.setLoopHooksOnly(false)).not.toThrow();
+    });
+
+    it('should get loop start/end time', () => {
+        const start = synth.getLoopStartTime();
+        const end = synth.getLoopEndTime();
+        expect(typeof start).toBe('number');
+        expect(typeof end).toBe('number');
+    });
+});
+
+describe('AdlMidiCore Track/Song Control', () => {
+    let synth;
+    beforeAll(async () => {
+        synth = await AdlMidiCore.create({ corePath: CORE_PATH });
+        synth.init(44100);
+        const midiData = readFileSync(join(__dirname, '..', '..', 'test-files', 'canyon.mid'));
+        synth.loadMidi(midiData);
+    });
+    afterAll(() => synth?.close());
+
+    it('should get songs count', () => {
+        const count = synth.getSongsCount();
+        expect(typeof count).toBe('number');
+        expect(count).toBeGreaterThanOrEqual(0);
+    });
+    it('should select song number', () => {
+        expect(() => synth.selectSongNum(0)).not.toThrow();
+    });
+    it('should get track count', () => {
+        const count = synth.getTrackCount();
+        expect(count).toBeGreaterThanOrEqual(0);
+    });
+    it('should set track options', () => {
+        const count = synth.getTrackCount();
+        if (count > 0) {
+            const result = synth.setTrackOptions(0, 0);
+            expect(typeof result).toBe('boolean');
+        }
+    });
+    it('should enable/disable MIDI channel', () => {
+        const result = synth.setChannelEnabled(0, true);
+        expect(typeof result).toBe('boolean');
+    });
+});
+
+describe('AdlMidiCore Metadata', () => {
+    let synth;
+    beforeAll(async () => {
+        synth = await AdlMidiCore.create({ corePath: CORE_PATH });
+        synth.init(44100);
+        const midiData = readFileSync(join(__dirname, '..', '..', 'test-files', 'canyon.mid'));
+        synth.loadMidi(midiData);
+    });
+    afterAll(() => synth?.close());
+
+    it('should get track title count', () => {
+        const count = synth.getTrackTitleCount();
+        expect(typeof count).toBe('number');
+        expect(count).toBeGreaterThanOrEqual(0);
+    });
+    it('should get track title by index', () => {
+        const count = synth.getTrackTitleCount();
+        if (count > 0) {
+            const title = synth.getTrackTitle(0);
+            expect(typeof title).toBe('string');
+        }
+    });
+    it('should get marker count', () => {
+        const count = synth.getMarkerCount();
+        expect(typeof count).toBe('number');
+        expect(count).toBeGreaterThanOrEqual(0);
     });
 });
 

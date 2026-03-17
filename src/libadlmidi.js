@@ -442,6 +442,19 @@ export class AdlMidi {
     }
 
     /**
+     * Get the number of 4-operator channels obtained
+     * @returns {Promise<number>}
+     */
+    async getNumFourOpChannelsObtained() {
+        return new Promise((resolve) => {
+            this.#onceMessage('numFourOpChannelsObtained', /** @param {{channels: number}} msg */(msg) => {
+                resolve(msg.channels);
+            });
+            this.#send({ type: 'getNumFourOpChannelsObtained' });
+        });
+    }
+
+    /**
      * Enable/disable scaling of modulators by volume
      * @param {boolean} enabled
      */
@@ -524,11 +537,37 @@ export class AdlMidi {
     }
 
     /**
+     * Get deep vibrato state
+     * @returns {Promise<boolean>}
+     */
+    async getDeepVibrato() {
+        return new Promise((resolve) => {
+            this.#onceMessage('deepVibrato', /** @param {{enabled: boolean}} msg */(msg) => {
+                resolve(msg.enabled);
+            });
+            this.#send({ type: 'getDeepVibrato' });
+        });
+    }
+
+    /**
      * Enable/disable deep tremolo
      * @param {boolean} enabled
      */
     setDeepTremolo(enabled) {
         this.#send({ type: 'setDeepTremolo', enabled });
+    }
+
+    /**
+     * Get deep tremolo state
+     * @returns {Promise<boolean>}
+     */
+    async getDeepTremolo() {
+        return new Promise((resolve) => {
+            this.#onceMessage('deepTremolo', /** @param {{enabled: boolean}} msg */(msg) => {
+                resolve(msg.enabled);
+            });
+            this.#send({ type: 'getDeepTremolo' });
+        });
     }
 
     /**
@@ -580,6 +619,19 @@ export class AdlMidi {
                 resolve(msg.name);
             });
             this.#send({ type: 'getEmulatorName' });
+        });
+    }
+
+    /**
+     * Get the last error info for the player instance
+     * @returns {Promise<string>}
+     */
+    async getErrorInfo() {
+        return new Promise((resolve) => {
+            this.#onceMessage('errorInfo', /** @param {{info: string}} msg */(msg) => {
+                resolve(msg.info);
+            });
+            this.#send({ type: 'getErrorInfo' });
         });
     }
 
@@ -721,6 +773,46 @@ export class AdlMidi {
     }
 
     /**
+     * Get the number of track titles in the loaded MIDI file
+     * @returns {Promise<number>}
+     */
+    async getTrackTitleCount() {
+        return new Promise((resolve) => {
+            this.#onceMessage('trackTitleCount', /** @param {{count: number}} msg */(msg) => {
+                resolve(msg.count);
+            });
+            this.#send({ type: 'getTrackTitleCount' });
+        });
+    }
+
+    /**
+     * Get a track title by index
+     * @param {number} index - Track title index
+     * @returns {Promise<string>}
+     */
+    async getTrackTitle(index) {
+        return new Promise((resolve) => {
+            this.#onceMessage('trackTitle', /** @param {{title: string}} msg */(msg) => {
+                resolve(msg.title);
+            });
+            this.#send({ type: 'getTrackTitle', index });
+        });
+    }
+
+    /**
+     * Get the number of MIDI markers in the loaded file
+     * @returns {Promise<number>}
+     */
+    async getMarkerCount() {
+        return new Promise((resolve) => {
+            this.#onceMessage('markerCount', /** @param {{count: number}} msg */(msg) => {
+                resolve(msg.count);
+            });
+            this.#send({ type: 'getMarkerCount' });
+        });
+    }
+
+    /**
      * Start or resume MIDI file playback
      * @returns {void}
      */
@@ -752,6 +844,120 @@ export class AdlMidi {
      */
     setLoopEnabled(enabled) {
         this.#send({ type: 'setLoopEnabled', enabled });
+    }
+
+    /**
+     * Set the number of loop repetitions
+     * @param {number} count - Loop count (-1 = infinite, 0 = no loops, 1+ = number of loops)
+     */
+    setLoopCount(count) {
+        this.#send({ type: 'setLoopCount', count });
+    }
+
+    /**
+     * Enable/disable loop hooks only mode
+     * @param {boolean} enabled
+     */
+    setLoopHooksOnly(enabled) {
+        this.#send({ type: 'setLoopHooksOnly', enabled });
+    }
+
+    /**
+     * Get the loop start time in seconds
+     * @returns {Promise<number>}
+     */
+    async getLoopStartTime() {
+        return new Promise((resolve) => {
+            this.#onceMessage('loopStartTime', /** @param {{time: number}} msg */(msg) => {
+                resolve(msg.time);
+            });
+            this.#send({ type: 'getLoopStartTime' });
+        });
+    }
+
+    /**
+     * Get the loop end time in seconds
+     * @returns {Promise<number>}
+     */
+    async getLoopEndTime() {
+        return new Promise((resolve) => {
+            this.#onceMessage('loopEndTime', /** @param {{time: number}} msg */(msg) => {
+                resolve(msg.time);
+            });
+            this.#send({ type: 'getLoopEndTime' });
+        });
+    }
+
+    /**
+     * Select a song number for multi-song MIDI files
+     * @param {number} num - Song number (0-based)
+     */
+    selectSongNum(num) {
+        this.#send({ type: 'selectSongNum', num });
+    }
+
+    /**
+     * Get the number of songs in the loaded MIDI file
+     * @returns {Promise<number>}
+     */
+    async getSongsCount() {
+        return new Promise((resolve) => {
+            this.#onceMessage('songsCount', /** @param {{count: number}} msg */(msg) => {
+                resolve(msg.count);
+            });
+            this.#send({ type: 'getSongsCount' });
+        });
+    }
+
+    /**
+     * Get the number of tracks in the loaded MIDI file
+     * @returns {Promise<number>}
+     */
+    async getTrackCount() {
+        return new Promise((resolve) => {
+            this.#onceMessage('trackCount', /** @param {{count: number}} msg */(msg) => {
+                resolve(msg.count);
+            });
+            this.#send({ type: 'getTrackCount' });
+        });
+    }
+
+    /**
+     * Set track options (e.g., mute/solo)
+     * @param {number} track - Track index
+     * @param {number} options - Track options flags
+     * @returns {Promise<void>} Resolves on success, rejects on failure
+     */
+    async setTrackOptions(track, options) {
+        return new Promise((resolve, reject) => {
+            this.#onceMessage('trackOptionsSet', /** @param {{success: boolean}} msg */(msg) => {
+                if (msg.success) {
+                    resolve();
+                } else {
+                    reject(new Error(`Failed to set track options for track ${track}`));
+                }
+            });
+            this.#send({ type: 'setTrackOptions', track, options });
+        });
+    }
+
+    /**
+     * Enable or disable a MIDI channel
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {boolean} enabled - Whether to enable the channel
+     * @returns {Promise<void>} Resolves on success, rejects on failure
+     */
+    async setChannelEnabled(channel, enabled) {
+        return new Promise((resolve, reject) => {
+            this.#onceMessage('channelEnabledSet', /** @param {{success: boolean}} msg */(msg) => {
+                if (msg.success) {
+                    resolve();
+                } else {
+                    reject(new Error(`Failed to set channel ${channel} enabled state`));
+                }
+            });
+            this.#send({ type: 'setChannelEnabled', channel, enabled });
+        });
     }
 
     /**
