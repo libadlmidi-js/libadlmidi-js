@@ -688,7 +688,9 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
             // ================== Debug / Diagnostics ==================
 
             case 'describeChannels': {
-                const size = 256;
+                // Size buffers based on actual chip count (~23 channels per OPL3 chip)
+                const numChips = this.adl._adl_getNumChipsObtained(this.midi);
+                const size = Math.max(256, (numChips + 1) * 23);
                 const textPtr = this.adl._malloc(size);
                 const attrPtr = this.adl._malloc(size);
                 this.adl._adl_describeChannels(this.midi, textPtr, attrPtr, size);

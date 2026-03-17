@@ -1153,7 +1153,9 @@ export class AdlMidiCore {
      */
     describeChannels() {
         this._ensurePlayer();
-        const size = 256;
+        // Size buffers based on actual chip count (~23 channels per OPL3 chip)
+        const numChips = this._module._adl_getNumChipsObtained(this._player);
+        const size = Math.max(256, (numChips + 1) * 23);
         const textPtr = this._module._malloc(size);
         const attrPtr = this._module._malloc(size);
         this._module._adl_describeChannels(this._player, textPtr, attrPtr, size);
