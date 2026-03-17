@@ -691,10 +691,10 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 const size = 256;
                 const textPtr = this.adl._malloc(size);
                 const attrPtr = this.adl._malloc(size);
-                const count = this.adl._adl_describeChannels(this.midi, textPtr, attrPtr, size);
+                this.adl._adl_describeChannels(this.midi, textPtr, attrPtr, size);
                 const text = this.adl.UTF8ToString(textPtr);
-                // attr contains raw per-channel bytes, not null-terminated text
-                const attr = Array.from(this.adl.HEAPU8.slice(attrPtr, attrPtr + count));
+                // attr contains raw per-channel bytes; one byte per channel char in text
+                const attr = Array.from(this.adl.HEAPU8.slice(attrPtr, attrPtr + text.length));
                 this.adl._free(textPtr);
                 this.adl._free(attrPtr);
                 this.port.postMessage({ type: 'channelsDescribed', text, attr });

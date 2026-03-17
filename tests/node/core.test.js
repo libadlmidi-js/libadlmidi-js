@@ -101,10 +101,10 @@ describe('AdlMidiCore Configuration', () => {
         expect(synth.setNumChips(4)).toBe(true);
     });
 
-    it('should set soft pan', () => {
-        synth.setSoftPanEnabled(true);
-        synth.setSoftPanEnabled(false);
-        // No error = success
+    it('should set soft pan without error', () => {
+        // setSoftPanEnabled is void — verify it doesn't throw
+        expect(() => synth.setSoftPanEnabled(true)).not.toThrow();
+        expect(() => synth.setSoftPanEnabled(false)).not.toThrow();
     });
 
     it('should set deep vibrato', () => {
@@ -461,11 +461,15 @@ describe('AdlMidiCore Loop Control', () => {
         expect(() => synth.setLoopHooksOnly(false)).not.toThrow();
     });
 
-    it('should get loop start/end time', () => {
+    it('should get loop start/end time as finite numbers', () => {
         const start = synth.getLoopStartTime();
         const end = synth.getLoopEndTime();
-        expect(typeof start).toBe('number');
-        expect(typeof end).toBe('number');
+        expect(Number.isFinite(start)).toBe(true);
+        expect(Number.isFinite(end)).toBe(true);
+        // If loop points exist, end >= start; if not, both may be -1
+        if (start >= 0 && end >= 0) {
+            expect(end).toBeGreaterThanOrEqual(start);
+        }
     });
 });
 
@@ -481,26 +485,33 @@ describe('AdlMidiCore Track/Song Control', () => {
 
     it('should get songs count', () => {
         const count = synth.getSongsCount();
-        expect(typeof count).toBe('number');
+        // Standard MIDI files return 0; XMI/MUS multi-song files return > 0
         expect(count).toBeGreaterThanOrEqual(0);
     });
-    it('should select song number', () => {
+
+    it('should select song 0 without error', () => {
         expect(() => synth.selectSongNum(0)).not.toThrow();
     });
-    it('should get track count', () => {
+
+    it('should get track count > 0 for multi-track MIDI', () => {
         const count = synth.getTrackCount();
-        expect(count).toBeGreaterThanOrEqual(0);
+        expect(count).toBeGreaterThan(0);
     });
-    it('should set track options', () => {
+
+    it('should successfully set track options', () => {
         const count = synth.getTrackCount();
         if (count > 0) {
+            // 0 = ADLMIDI_TrackOption_On (enable track)
             const result = synth.setTrackOptions(0, 0);
-            expect(typeof result).toBe('boolean');
+            expect(result).toBe(true);
         }
     });
-    it('should enable/disable MIDI channel', () => {
-        const result = synth.setChannelEnabled(0, true);
-        expect(typeof result).toBe('boolean');
+
+    it('should successfully enable/disable MIDI channel', () => {
+        expect(synth.setChannelEnabled(0, true)).toBe(true);
+        expect(synth.setChannelEnabled(0, false)).toBe(true);
+        // Re-enable for subsequent tests
+        synth.setChannelEnabled(0, true);
     });
 });
 
@@ -575,9 +586,9 @@ describe('AdlMidiCore Bank Management', () => {
     });
     afterAll(() => synth?.close());
 
-    it('should reserve banks', () => {
+    it('should reserve banks successfully', () => {
         const result = synth.reserveBanks(5);
-        expect(typeof result).toBe('boolean');
+        expect(result).toBe(true);
     });
 
     it('should load embedded bank into custom slot', () => {
@@ -586,19 +597,45 @@ describe('AdlMidiCore Bank Management', () => {
         expect(result).toBe(true);
     });
 
-    it('should get bank ID', () => {
+    it('should get bank ID and round-trip correctly', () => {
+        // Load into a known slot, then read it back
         const bankId = { percussive: false, msb: 0, lsb: 0 };
+        synth.loadEmbeddedBank(bankId, 10);
         const id = synth.getBankId(bankId);
-        expect(id).toHaveProperty('percussive');
-        expect(id).toHaveProperty('msb');
-        expect(id).toHaveProperty('lsb');
+        expect(id).not.toBeNull();
+        expect(id.percussive).toBe(0);
+        expect(id.msb).toBe(0);
+        expect(id.lsb).toBe(0);
     });
 
-    it('should remove bank', () => {
+    it('should get bank ID for percussion bank', () => {
+        const bankId = { percussive: true, msb: 0, lsb: 0 };
+        synth.loadEmbeddedBank(bankId, 10);
+        const id = synth.getBankId(bankId);
+        expect(id).not.toBeNull();
+        expect(id.percussive).toBe(1);
+    });
+
+    it('should return null for non-existent bank', () => {
+        const bankId = { percussive: false, msb: 127, lsb: 127 };
+        const id = synth.getBankId(bankId);
+        expect(id).toBeNull();
+    });
+
+    it('should remove a bank that exists', () => {
         const bankId = { percussive: false, msb: 1, lsb: 0 };
         synth.loadEmbeddedBank(bankId, 5);
         const result = synth.removeBank(bankId);
-        expect(typeof result).toBe('boolean');
+        expect(result).toBe(true);
+        // Verify it's gone
+        const id = synth.getBankId(bankId);
+        expect(id).toBeNull();
+    });
+
+    it('should fail to remove a non-existent bank', () => {
+        const bankId = { percussive: false, msb: 126, lsb: 126 };
+        const result = synth.removeBank(bankId);
+        expect(result).toBe(false);
     });
 });
 
@@ -610,11 +647,18 @@ describe('AdlMidiCore System Exclusive', () => {
     });
     afterAll(() => synth?.close());
 
-    it('should send system exclusive message', () => {
+    it('should process a valid GM System On SysEx', () => {
         // GM System On: F0 7E 7F 09 01 F7
         const sysex = new Uint8Array([0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7]);
         const result = synth.systemExclusive(sysex);
-        expect(typeof result).toBe('boolean');
+        // Should return true (processed) — not false
+        expect(result).toBe(true);
+    });
+
+    it('should accept ArrayBuffer input', () => {
+        const sysex = new Uint8Array([0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7]);
+        const result = synth.systemExclusive(sysex.buffer);
+        expect(result).toBe(true);
     });
 });
 
@@ -626,12 +670,26 @@ describe('AdlMidiCore Channel Description', () => {
     });
     afterAll(() => synth?.close());
 
-    it('should describe channels', () => {
+    it('should describe channels with text and binary attr', () => {
         const result = synth.describeChannels();
-        expect(result).toHaveProperty('text');
-        expect(result).toHaveProperty('attr');
         expect(typeof result.text).toBe('string');
         expect(result.attr).toBeInstanceOf(Uint8Array);
+        // text should have content (channel state chars)
+        expect(result.text.length).toBeGreaterThan(0);
+        // attr length should match text length (one byte per channel)
+        expect(result.attr.length).toBe(result.text.length);
+    });
+
+    it('should reflect note activity in channel description', () => {
+        // Play a note and check that describeChannels shows activity
+        synth.noteOn(0, 60, 100);
+        const active = synth.describeChannels();
+        synth.noteOff(0, 60);
+        synth.panic();
+        const silent = synth.describeChannels();
+        // The channel text should differ between active and silent states
+        // (active channels get different display chars than silent ones)
+        expect(active.text).not.toBe(silent.text);
     });
 });
 
