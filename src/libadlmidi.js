@@ -717,6 +717,77 @@ export class AdlMidi {
         });
     }
 
+    // ================== Bank Management API ==================
+
+    /**
+     * Reserve a number of banks
+     * @param {number} count - Number of banks to reserve
+     * @returns {Promise<void>} Resolves on success, rejects on failure
+     */
+    async reserveBanks(count) {
+        return new Promise((resolve, reject) => {
+            this.#onceMessage('banksReserved', /** @param {{success: boolean}} msg */(msg) => {
+                if (msg.success) {
+                    resolve();
+                } else {
+                    reject(new Error('Failed to reserve banks'));
+                }
+            });
+            this.#send({ type: 'reserveBanks', count });
+        });
+    }
+
+    /**
+     * Get the bank ID for a given bank identifier
+     * @param {BankId} bankId - Bank identifier
+     * @returns {Promise<{percussive: number, msb: number, lsb: number}|null>} Bank ID or null if not found
+     */
+    async getBankId(bankId) {
+        return new Promise((resolve) => {
+            this.#onceMessage('bankId', /** @param {{id: {percussive: number, msb: number, lsb: number}|null}} msg */(msg) => {
+                resolve(msg.id);
+            });
+            this.#send({ type: 'getBankId', bankId });
+        });
+    }
+
+    /**
+     * Remove a bank by its identifier
+     * @param {BankId} bankId - Bank identifier
+     * @returns {Promise<void>} Resolves on success, rejects on failure
+     */
+    async removeBank(bankId) {
+        return new Promise((resolve, reject) => {
+            this.#onceMessage('bankRemoved', /** @param {{success: boolean}} msg */(msg) => {
+                if (msg.success) {
+                    resolve();
+                } else {
+                    reject(new Error('Failed to remove bank'));
+                }
+            });
+            this.#send({ type: 'removeBank', bankId });
+        });
+    }
+
+    /**
+     * Load an embedded bank into a custom bank slot
+     * @param {BankId} bankId - Target bank identifier
+     * @param {number} num - Embedded bank number to load
+     * @returns {Promise<void>} Resolves on success, rejects on failure
+     */
+    async loadEmbeddedBank(bankId, num) {
+        return new Promise((resolve, reject) => {
+            this.#onceMessage('embeddedBankLoaded', /** @param {{success: boolean}} msg */(msg) => {
+                if (msg.success) {
+                    resolve();
+                } else {
+                    reject(new Error('Failed to load embedded bank'));
+                }
+            });
+            this.#send({ type: 'loadEmbeddedBank', bankId, num });
+        });
+    }
+
     /**
      * Reset the synthesizer
      * @returns {void}
