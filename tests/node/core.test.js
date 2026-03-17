@@ -631,7 +631,7 @@ describe('AdlMidiCore Channel Description', () => {
         expect(result).toHaveProperty('text');
         expect(result).toHaveProperty('attr');
         expect(typeof result.text).toBe('string');
-        expect(typeof result.attr).toBe('string');
+        expect(result.attr).toBeInstanceOf(Uint8Array);
     });
 });
 

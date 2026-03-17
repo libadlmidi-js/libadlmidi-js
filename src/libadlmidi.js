@@ -813,12 +813,12 @@ export class AdlMidi {
 
     /**
      * Describe the current state of all channels (debug utility)
-     * @returns {Promise<{text: string, attr: string}>} Channel state description
+     * @returns {Promise<{text: string, attr: Uint8Array}>} Channel state text and raw per-channel attribute bytes
      */
     async describeChannels() {
         return new Promise((resolve) => {
-            this.#onceMessage('channelsDescribed', /** @param {{text: string, attr: string}} msg */(msg) => {
-                resolve({ text: msg.text, attr: msg.attr });
+            this.#onceMessage('channelsDescribed', /** @param {{text: string, attr: number[]}} msg */(msg) => {
+                resolve({ text: msg.text, attr: new Uint8Array(msg.attr) });
             });
             this.#send({ type: 'describeChannels' });
         });

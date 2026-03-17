@@ -598,8 +598,9 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
             // ================== Bank Management ==================
 
             case 'reserveBanks': {
+                // adl_reserveBanks returns the resulting capacity (>= 0), not 0 on success
                 const result = this.adl._adl_reserveBanks(this.midi, msg.count);
-                this.port.postMessage({ type: 'banksReserved', success: result === 0 });
+                this.port.postMessage({ type: 'banksReserved', success: result >= 0 });
                 break;
             }
 
@@ -679,7 +680,8 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl.HEAPU8.set(bytes, ptr);
                 const result = this.adl._adl_rt_systemExclusive(this.midi, ptr, bytes.length);
                 this.adl._free(ptr);
-                this.port.postMessage({ type: 'systemExclusiveSent', success: result === 0 });
+                // adl_rt_systemExclusive returns 1 when processed, 0 when rejected
+                this.port.postMessage({ type: 'systemExclusiveSent', success: result !== 0 });
                 break;
             }
 
@@ -689,9 +691,10 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 const size = 256;
                 const textPtr = this.adl._malloc(size);
                 const attrPtr = this.adl._malloc(size);
-                this.adl._adl_describeChannels(this.midi, textPtr, attrPtr, size);
+                const count = this.adl._adl_describeChannels(this.midi, textPtr, attrPtr, size);
                 const text = this.adl.UTF8ToString(textPtr);
-                const attr = this.adl.UTF8ToString(attrPtr);
+                // attr contains raw per-channel bytes, not null-terminated text
+                const attr = Array.from(this.adl.HEAPU8.slice(attrPtr, attrPtr + count));
                 this.adl._free(textPtr);
                 this.adl._free(attrPtr);
                 this.port.postMessage({ type: 'channelsDescribed', text, attr });
