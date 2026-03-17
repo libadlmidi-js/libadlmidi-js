@@ -1156,10 +1156,10 @@ export class AdlMidiCore {
         const size = 256;
         const textPtr = this._module._malloc(size);
         const attrPtr = this._module._malloc(size);
-        const count = this._module._adl_describeChannels(this._player, textPtr, attrPtr, size);
+        this._module._adl_describeChannels(this._player, textPtr, attrPtr, size);
         const text = this._module.UTF8ToString(textPtr);
-        // attr contains raw per-channel bytes (not null-terminated text)
-        const attr = this._module.HEAPU8.slice(attrPtr, attrPtr + count);
+        // attr contains raw per-channel bytes; one byte per channel char in text
+        const attr = this._module.HEAPU8.slice(attrPtr, attrPtr + text.length);
         this._module._free(textPtr);
         this._module._free(attrPtr);
         return { text, attr };
