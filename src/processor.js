@@ -391,7 +391,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.port.postMessage({ type: 'channelAllocMode', mode: this.adl._adl_getChannelAllocMode(this.midi) });
                 break;
 
-            case 'setVolumeModel':
+            case 'setVolumeRangeModel':
                 this.adl._adl_setVolumeRangeModel(this.midi, msg.model);
                 break;
 
@@ -451,8 +451,8 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.port.postMessage({ type: 'numChipsObtained', chips: this.adl._adl_getNumChipsObtained(this.midi) });
                 break;
 
-            case 'getVolumeModel':
-                this.port.postMessage({ type: 'volumeModel', model: this.adl._adl_getVolumeRangeModel(this.midi) });
+            case 'getVolumeRangeModel':
+                this.port.postMessage({ type: 'volumeRangeModel', model: this.adl._adl_getVolumeRangeModel(this.midi) });
                 break;
 
             case 'getEmbeddedBanks': {

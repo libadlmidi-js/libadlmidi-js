@@ -406,7 +406,7 @@ export class AdlMidiCore {
      *
      * @returns {number}
      */
-    getVolumeModel() {
+    getVolumeRangeModel() {
         this._ensurePlayer();
         return this._module._adl_getVolumeRangeModel(this._player);
     }
@@ -416,7 +416,7 @@ export class AdlMidiCore {
      *
      * @param {number} model - Volume model type
      */
-    setVolumeModel(model) {
+    setVolumeRangeModel(model) {
         this._ensurePlayer();
         this._module._adl_setVolumeRangeModel(this._player, model);
     }
