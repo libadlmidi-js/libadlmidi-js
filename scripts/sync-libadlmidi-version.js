@@ -43,7 +43,7 @@ function getSubmoduleCommit() {
         }).trim();
         return commit;
     } catch (err) {
-        throw new Error(`Failed to get libADLMIDI git commit: ${err.message}`);
+        throw new Error(`Failed to get libADLMIDI git commit: ${err.message}`, { cause: err });
     }
 }
 

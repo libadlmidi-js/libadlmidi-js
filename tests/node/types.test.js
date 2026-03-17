@@ -23,7 +23,7 @@ describe('TypeScript Definitions', () => {
             });
         } catch (error) {
             // If tsc fails, show the error
-            throw new Error(`TypeScript compilation failed: ${error.stderr?.toString() || error.message}`);
+            throw new Error(`TypeScript compilation failed: ${error.stderr?.toString() || error.message}`, { cause: error });
         }
     });
 

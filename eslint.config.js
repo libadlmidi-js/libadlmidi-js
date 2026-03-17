@@ -18,6 +18,14 @@ export default [
         },
     },
     {
-        ignores: ['dist/', 'node_modules/', 'libADLMIDI/', 'build-*/', 'test-results/', '.emsdk/'],
+        files: ['src/processor.js'],
+        languageOptions: {
+            globals: {
+                ...globals.audioWorklet,
+            },
+        },
+    },
+    {
+        ignores: ['dist/', 'node_modules/', 'libADLMIDI/', 'build-*/', 'test-results/', '.emsdk/', 'tests/bundler-smoke/dist/'],
     },
 ];
