@@ -508,14 +508,6 @@ export class AdlMidi {
     }
 
     /**
-     * Enable/disable rhythm mode (percussion)
-     * @param {boolean} enabled
-     */
-    setPercussionMode(enabled) {
-        this.#send({ type: 'setPercMode', enabled });
-    }
-
-    /**
      * Enable/disable soft stereo panning
      * @param {boolean} enabled
      */
