@@ -498,7 +498,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._adl_positionSeek(this.midi, msg.position);
                 break;
 
-            case 'setLoop':
+            case 'setLoopEnabled':
                 this.adl._adl_setLoopEnabled(this.midi, msg.enabled ? 1 : 0);
                 break;
 

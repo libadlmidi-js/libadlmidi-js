@@ -260,8 +260,8 @@ test.describe('Example Pages', () => {
                 throw new Error(`getPlaybackState returned invalid atEnd: ${state.atEnd}`);
             }
 
-            // Test setLoop
-            synth.setLoop(true);
+            // Test setLoopEnabled
+            synth.setLoopEnabled(true);
 
             // Test stop
             synth.stop();
