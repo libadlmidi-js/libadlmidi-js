@@ -18,6 +18,6 @@ export default [
         },
     },
     {
-        ignores: ['dist/', 'node_modules/', 'libADLMIDI/', 'build-*/', 'test-results/'],
+        ignores: ['dist/', 'node_modules/', 'libADLMIDI/', 'build-*/', 'test-results/', '.emsdk/'],
     },
 ];
