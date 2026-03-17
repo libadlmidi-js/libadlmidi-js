@@ -788,6 +788,27 @@ export class AdlMidi {
         });
     }
 
+    // ================== SysEx API ==================
+
+    /**
+     * Send a System Exclusive (SysEx) message
+     * @param {Uint8Array|ArrayBuffer} data - SysEx message data
+     * @returns {Promise<void>} Resolves on success, rejects on failure
+     */
+    async systemExclusive(data) {
+        const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+        return new Promise((resolve, reject) => {
+            this.#onceMessage('systemExclusiveSent', /** @param {{success: boolean}} msg */(msg) => {
+                if (msg.success) {
+                    resolve();
+                } else {
+                    reject(new Error('Failed to send system exclusive message'));
+                }
+            });
+            this.#send({ type: 'systemExclusive', data: Array.from(bytes) });
+        });
+    }
+
     /**
      * Reset the synthesizer
      * @returns {void}

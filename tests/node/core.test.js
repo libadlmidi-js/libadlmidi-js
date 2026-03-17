@@ -602,6 +602,22 @@ describe('AdlMidiCore Bank Management', () => {
     });
 });
 
+describe('AdlMidiCore System Exclusive', () => {
+    let synth;
+    beforeAll(async () => {
+        synth = await AdlMidiCore.create({ corePath: CORE_PATH });
+        synth.init(44100);
+    });
+    afterAll(() => synth?.close());
+
+    it('should send system exclusive message', () => {
+        // GM System On: F0 7E 7F 09 01 F7
+        const sysex = new Uint8Array([0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7]);
+        const result = synth.systemExclusive(sysex);
+        expect(typeof result).toBe('boolean');
+    });
+});
+
 describe('AdlMidiCore Direct Module Access', () => {
     let synth;
 
