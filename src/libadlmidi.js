@@ -338,7 +338,7 @@ export class AdlMidi {
      * @param {ArrayBuffer} arrayBuffer - Bank file data
      * @returns {Promise<void>}
      */
-    async loadBank(arrayBuffer) {
+    async loadBankData(arrayBuffer) {
         return new Promise((resolve, reject) => {
             this.#onceMessage('bankLoaded', /** @param {{success: boolean, error?: string}} msg */(msg) => {
                 if (msg.success) {
@@ -348,7 +348,7 @@ export class AdlMidi {
                 }
             });
 
-            this.#send({ type: 'loadBank', data: arrayBuffer });
+            this.#send({ type: 'loadBankData', data: arrayBuffer });
         });
     }
 

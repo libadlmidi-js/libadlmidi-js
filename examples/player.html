@@ -516,7 +516,7 @@
                 if (!response.ok) throw new Error('Failed to fetch: ' + response.status);
 
                 const bankData = await response.arrayBuffer();
-                await synth.loadBank(bankData);
+                await synth.loadBankData(bankData);
                 setCurrentBank('External: ' + bankName);
                 setStatus('Loaded external bank');
             } catch (error) {
