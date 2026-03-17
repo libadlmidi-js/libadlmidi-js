@@ -916,7 +916,8 @@ export class AdlMidiCore {
      */
     reserveBanks(count) {
         this._ensurePlayer();
-        return this._module._adl_reserveBanks(this._player, count) === 0;
+        // adl_reserveBanks returns the resulting capacity (>= 0), not 0 on success
+        return this._module._adl_reserveBanks(this._player, count) >= 0;
     }
 
     /**
@@ -1137,7 +1138,8 @@ export class AdlMidiCore {
         this._module.HEAPU8.set(bytes, ptr);
         const result = this._module._adl_rt_systemExclusive(this._player, ptr, bytes.length);
         this._module._free(ptr);
-        return result === 0;
+        // adl_rt_systemExclusive returns 1 when processed, 0 when rejected
+        return result !== 0;
     }
 
     // =========================================================================
@@ -1147,16 +1149,17 @@ export class AdlMidiCore {
     /**
      * Describe the current state of all channels (debug utility).
      *
-     * @returns {{text: string, attr: string}} Channel state description
+     * @returns {{text: string, attr: Uint8Array}} Channel state text and raw per-channel attribute bytes
      */
     describeChannels() {
         this._ensurePlayer();
         const size = 256;
         const textPtr = this._module._malloc(size);
         const attrPtr = this._module._malloc(size);
-        this._module._adl_describeChannels(this._player, textPtr, attrPtr, size);
+        const count = this._module._adl_describeChannels(this._player, textPtr, attrPtr, size);
         const text = this._module.UTF8ToString(textPtr);
-        const attr = this._module.UTF8ToString(attrPtr);
+        // attr contains raw per-channel bytes (not null-terminated text)
+        const attr = this._module.HEAPU8.slice(attrPtr, attrPtr + count);
         this._module._free(textPtr);
         this._module._free(attrPtr);
         return { text, attr };
