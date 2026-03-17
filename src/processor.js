@@ -395,10 +395,6 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._adl_setVolumeRangeModel(this.midi, msg.model);
                 break;
 
-            case 'setPercMode':
-                this.adl._adl_setPercMode(this.midi, msg.enabled ? 1 : 0);
-                break;
-
             case 'setDeepVibrato':
                 this.adl._adl_setHVibrato(this.midi, msg.enabled ? 1 : 0);
                 break;
