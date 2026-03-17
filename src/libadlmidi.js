@@ -750,8 +750,8 @@ export class AdlMidi {
      * @param {boolean} enabled - Whether to loop
      * @returns {void}
      */
-    setLoop(enabled) {
-        this.#send({ type: 'setLoop', enabled });
+    setLoopEnabled(enabled) {
+        this.#send({ type: 'setLoopEnabled', enabled });
     }
 
     /**

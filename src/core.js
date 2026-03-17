@@ -712,7 +712,7 @@ export class AdlMidiCore {
      *
      * @param {boolean} enabled
      */
-    setLooping(enabled) {
+    setLoopEnabled(enabled) {
         this._ensurePlayer();
         this._module._adl_setLoopEnabled(this._player, enabled ? 1 : 0);
     }

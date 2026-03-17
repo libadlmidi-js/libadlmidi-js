@@ -384,8 +384,8 @@ describe('AdlMidiCore MIDI Playback', () => {
 
     it('should set looping', () => {
         synth.loadMidi(midiData);
-        synth.setLooping(true);
-        synth.setLooping(false);
+        synth.setLoopEnabled(true);
+        synth.setLoopEnabled(false);
     });
 
     it('should set tempo', () => {
