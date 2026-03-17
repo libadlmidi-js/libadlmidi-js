@@ -130,8 +130,8 @@ describe('AdlMidiCore Configuration', () => {
     });
 
     it('should set and get volume model', () => {
-        synth.setVolumeModel(2); // ADLMIDI_VolumeModel_NativeOPL3
-        const model = synth.getVolumeModel();
+        synth.setVolumeRangeModel(2); // ADLMIDI_VolumeModel_NativeOPL3
+        const model = synth.getVolumeRangeModel();
         expect(model).toBe(2);
     });
 

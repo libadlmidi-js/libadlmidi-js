@@ -500,11 +500,11 @@ export class AdlMidi {
     }
 
     /**
-     * Set the volume model
+     * Set the volume range model
      * @param {number} model - Volume model number
      */
-    setVolumeModel(model) {
-        this.#send({ type: 'setVolumeModel', model });
+    setVolumeRangeModel(model) {
+        this.#send({ type: 'setVolumeRangeModel', model });
     }
 
     /**
@@ -639,12 +639,12 @@ export class AdlMidi {
      * Get the volume range model
      * @returns {Promise<number>}
      */
-    async getVolumeModel() {
+    async getVolumeRangeModel() {
         return new Promise((resolve) => {
-            this.#onceMessage('volumeModel', /** @param {{model: number}} msg */(msg) => {
+            this.#onceMessage('volumeRangeModel', /** @param {{model: number}} msg */(msg) => {
                 resolve(msg.model);
             });
-            this.#send({ type: 'getVolumeModel' });
+            this.#send({ type: 'getVolumeRangeModel' });
         });
     }
 
