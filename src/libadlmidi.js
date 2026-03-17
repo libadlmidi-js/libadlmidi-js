@@ -519,16 +519,16 @@ export class AdlMidi {
      * Enable/disable deep vibrato
      * @param {boolean} enabled
      */
-    setVibrato(enabled) {
-        this.#send({ type: 'setVibrato', enabled });
+    setDeepVibrato(enabled) {
+        this.#send({ type: 'setDeepVibrato', enabled });
     }
 
     /**
      * Enable/disable deep tremolo
      * @param {boolean} enabled
      */
-    setTremolo(enabled) {
-        this.#send({ type: 'setTremolo', enabled });
+    setDeepTremolo(enabled) {
+        this.#send({ type: 'setDeepTremolo', enabled });
     }
 
     /**
