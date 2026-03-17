@@ -310,7 +310,7 @@ export class AdlMidiCore {
      *
      * @param {boolean} enabled
      */
-    setSoftPan(enabled) {
+    setSoftPanEnabled(enabled) {
         this._ensurePlayer();
         this._module._adl_setSoftPanEnabled(this._player, enabled ? 1 : 0);
     }

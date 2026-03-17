@@ -407,6 +407,10 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._adl_setHTremolo(this.midi, msg.enabled ? 1 : 0);
                 break;
 
+            case 'setSoftPanEnabled':
+                this.adl._adl_setSoftPanEnabled(this.midi, msg.enabled ? 1 : 0);
+                break;
+
             case 'setRunAtPcmRate':
                 this.adl._adl_setRunAtPcmRate(this.midi, msg.enabled ? 1 : 0);
                 break;
