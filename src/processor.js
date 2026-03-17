@@ -367,6 +367,10 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.port.postMessage({ type: 'numFourOpChannels', channels: this.adl._adl_getNumFourOpsChn(this.midi) });
                 break;
 
+            case 'getNumFourOpChannelsObtained':
+                this.port.postMessage({ type: 'numFourOpChannelsObtained', channels: this.adl._adl_getNumFourOpsChnObtained(this.midi) });
+                break;
+
             case 'setScaleModulators':
                 this.adl._adl_setScaleModulators(this.midi, msg.enabled ? 1 : 0);
                 break;
@@ -399,8 +403,16 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._adl_setHVibrato(this.midi, msg.enabled ? 1 : 0);
                 break;
 
+            case 'getDeepVibrato':
+                this.port.postMessage({ type: 'deepVibrato', enabled: this.adl._adl_getHVibrato(this.midi) !== 0 });
+                break;
+
             case 'setDeepTremolo':
                 this.adl._adl_setHTremolo(this.midi, msg.enabled ? 1 : 0);
+                break;
+
+            case 'getDeepTremolo':
+                this.port.postMessage({ type: 'deepTremolo', enabled: this.adl._adl_getHTremolo(this.midi) !== 0 });
                 break;
 
             case 'setSoftPanEnabled':
@@ -422,6 +434,13 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 const namePtr = this.adl._adl_chipEmulatorName(this.midi);
                 const name = namePtr ? this.adl.UTF8ToString(namePtr) : 'Unknown';
                 this.port.postMessage({ type: 'emulatorName', name });
+                break;
+            }
+
+            case 'getErrorInfo': {
+                const ptr = this.adl._adl_errorInfo(this.midi);
+                const info = ptr ? this.adl.UTF8ToString(ptr) : '';
+                this.port.postMessage({ type: 'errorInfo', info });
                 break;
             }
 
@@ -480,6 +499,21 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 break;
             }
 
+            case 'getTrackTitleCount':
+                this.port.postMessage({ type: 'trackTitleCount', count: this.adl._adl_metaTrackTitleCount(this.midi) });
+                break;
+
+            case 'getTrackTitle': {
+                const ptr = this.adl._adl_metaTrackTitle(this.midi, msg.index);
+                const title = ptr ? this.adl.UTF8ToString(ptr) : '';
+                this.port.postMessage({ type: 'trackTitle', title, index: msg.index });
+                break;
+            }
+
+            case 'getMarkerCount':
+                this.port.postMessage({ type: 'markerCount', count: this.adl._adl_metaMarkerCount(this.midi) });
+                break;
+
             case 'play':
                 // If at end, rewind first so play works as expected
                 if (this.adl._adl_atEnd(this.midi) !== 0) {
@@ -501,6 +535,46 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
             case 'setLoopEnabled':
                 this.adl._adl_setLoopEnabled(this.midi, msg.enabled ? 1 : 0);
                 break;
+
+            case 'setLoopCount':
+                this.adl._adl_setLoopCount(this.midi, msg.count);
+                break;
+
+            case 'setLoopHooksOnly':
+                this.adl._adl_setLoopHooksOnly(this.midi, msg.enabled ? 1 : 0);
+                break;
+
+            case 'getLoopStartTime':
+                this.port.postMessage({ type: 'loopStartTime', time: this.adl._adl_loopStartTime(this.midi) });
+                break;
+
+            case 'getLoopEndTime':
+                this.port.postMessage({ type: 'loopEndTime', time: this.adl._adl_loopEndTime(this.midi) });
+                break;
+
+            case 'selectSongNum':
+                this.adl._adl_selectSongNum(this.midi, msg.num);
+                break;
+
+            case 'getSongsCount':
+                this.port.postMessage({ type: 'songsCount', count: this.adl._adl_getSongsCount(this.midi) });
+                break;
+
+            case 'getTrackCount':
+                this.port.postMessage({ type: 'trackCount', count: this.adl._adl_trackCount(this.midi) });
+                break;
+
+            case 'setTrackOptions': {
+                const result = this.adl._adl_setTrackOptions(this.midi, msg.track, msg.options);
+                this.port.postMessage({ type: 'trackOptionsSet', success: result === 0 });
+                break;
+            }
+
+            case 'setChannelEnabled': {
+                const result = this.adl._adl_setChannelEnabled(this.midi, msg.channel, msg.enabled ? 1 : 0);
+                this.port.postMessage({ type: 'channelEnabledSet', success: result === 0 });
+                break;
+            }
 
             case 'setTempo':
                 this.adl._adl_setTempo(this.midi, msg.tempo);

@@ -246,6 +246,16 @@ export class AdlMidiCore {
     }
 
     /**
+     * Get the number of 4-operator channels obtained.
+     *
+     * @returns {number} Count of channels obtained
+     */
+    getNumFourOpChannelsObtained() {
+        this._ensurePlayer();
+        return this._module._adl_getNumFourOpsChnObtained(this._player);
+    }
+
+    /**
      * Enable/disable scaling of modulators by volume.
      *
      * @param {boolean} enabled
@@ -326,6 +336,16 @@ export class AdlMidiCore {
     }
 
     /**
+     * Get deep vibrato state.
+     *
+     * @returns {boolean}
+     */
+    getDeepVibrato() {
+        this._ensurePlayer();
+        return this._module._adl_getHVibrato(this._player) !== 0;
+    }
+
+    /**
      * Enable/disable deep tremolo.
      *
      * @param {boolean} enabled
@@ -333,6 +353,16 @@ export class AdlMidiCore {
     setDeepTremolo(enabled) {
         this._ensurePlayer();
         this._module._adl_setHTremolo(this._player, enabled ? 1 : 0);
+    }
+
+    /**
+     * Get deep tremolo state.
+     *
+     * @returns {boolean}
+     */
+    getDeepTremolo() {
+        this._ensurePlayer();
+        return this._module._adl_getHTremolo(this._player) !== 0;
     }
 
     /**
@@ -355,6 +385,27 @@ export class AdlMidiCore {
         this._ensurePlayer();
         const ptr = this._module._adl_chipEmulatorName(this._player);
         return this._module.UTF8ToString(ptr);
+    }
+
+    /**
+     * Get the last global error string (static, no player needed).
+     *
+     * @returns {string} Error string or empty string
+     */
+    getErrorString() {
+        const ptr = this._module._adl_errorString();
+        return ptr ? this._module.UTF8ToString(ptr) : '';
+    }
+
+    /**
+     * Get the last error info for this player instance.
+     *
+     * @returns {string} Error info string or empty string
+     */
+    getErrorInfo() {
+        this._ensurePlayer();
+        const ptr = this._module._adl_errorInfo(this._player);
+        return ptr ? this._module.UTF8ToString(ptr) : '';
     }
 
     /**
@@ -629,6 +680,38 @@ export class AdlMidiCore {
     }
 
     /**
+     * Get the number of track titles in the loaded MIDI file.
+     *
+     * @returns {number} Number of track titles
+     */
+    getTrackTitleCount() {
+        this._ensurePlayer();
+        return this._module._adl_metaTrackTitleCount(this._player);
+    }
+
+    /**
+     * Get a track title by index.
+     *
+     * @param {number} index - Track title index
+     * @returns {string} Track title or empty string
+     */
+    getTrackTitle(index) {
+        this._ensurePlayer();
+        const ptr = this._module._adl_metaTrackTitle(this._player, index);
+        return ptr ? this._module.UTF8ToString(ptr) : '';
+    }
+
+    /**
+     * Get the number of MIDI markers in the loaded file.
+     *
+     * @returns {number} Number of markers
+     */
+    getMarkerCount() {
+        this._ensurePlayer();
+        return this._module._adl_metaMarkerCount(this._player);
+    }
+
+    /**
      * Play MIDI file and generate audio.
      *
      * @param {number} frames - Number of stereo frames to generate
@@ -715,6 +798,100 @@ export class AdlMidiCore {
     setLoopEnabled(enabled) {
         this._ensurePlayer();
         this._module._adl_setLoopEnabled(this._player, enabled ? 1 : 0);
+    }
+
+    /**
+     * Set the number of loop repetitions.
+     *
+     * @param {number} count - Loop count (-1 = infinite, 0 = no loops, 1+ = number of loops)
+     */
+    setLoopCount(count) {
+        this._ensurePlayer();
+        this._module._adl_setLoopCount(this._player, count);
+    }
+
+    /**
+     * Enable/disable loop hooks only mode.
+     *
+     * @param {boolean} enabled
+     */
+    setLoopHooksOnly(enabled) {
+        this._ensurePlayer();
+        this._module._adl_setLoopHooksOnly(this._player, enabled ? 1 : 0);
+    }
+
+    /**
+     * Get the loop start time in seconds.
+     *
+     * @returns {number} Loop start time in seconds
+     */
+    getLoopStartTime() {
+        this._ensurePlayer();
+        return this._module._adl_loopStartTime(this._player);
+    }
+
+    /**
+     * Get the loop end time in seconds.
+     *
+     * @returns {number} Loop end time in seconds
+     */
+    getLoopEndTime() {
+        this._ensurePlayer();
+        return this._module._adl_loopEndTime(this._player);
+    }
+
+    /**
+     * Select a song number for multi-song MIDI files.
+     *
+     * @param {number} num - Song number (0-based)
+     */
+    selectSongNum(num) {
+        this._ensurePlayer();
+        this._module._adl_selectSongNum(this._player, num);
+    }
+
+    /**
+     * Get the number of songs in the loaded MIDI file.
+     *
+     * @returns {number} Number of songs
+     */
+    getSongsCount() {
+        this._ensurePlayer();
+        return this._module._adl_getSongsCount(this._player);
+    }
+
+    /**
+     * Get the number of tracks in the loaded MIDI file.
+     *
+     * @returns {number} Number of tracks
+     */
+    getTrackCount() {
+        this._ensurePlayer();
+        return this._module._adl_trackCount(this._player);
+    }
+
+    /**
+     * Set track options (e.g., mute/solo).
+     *
+     * @param {number} track - Track index
+     * @param {number} options - Track options flags
+     * @returns {boolean} True if successful
+     */
+    setTrackOptions(track, options) {
+        this._ensurePlayer();
+        return this._module._adl_setTrackOptions(this._player, track, options) === 0;
+    }
+
+    /**
+     * Enable or disable a MIDI channel.
+     *
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {boolean} enabled - Whether to enable the channel
+     * @returns {boolean} True if successful
+     */
+    setChannelEnabled(channel, enabled) {
+        this._ensurePlayer();
+        return this._module._adl_setChannelEnabled(this._player, channel, enabled ? 1 : 0) === 0;
     }
 
     /**
