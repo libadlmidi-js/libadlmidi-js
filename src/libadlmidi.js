@@ -201,6 +201,34 @@ export class AdlMidi {
     }
 
     /**
+     * Register a one-time handler correlated by bankId.
+     * Allows concurrent bank operations without reply misrouting.
+     * @param {string} type - Message type
+     * @param {BankId} bankId - Bank identifier to match against
+     * @param {Function} handler - Handler function
+     */
+    #onceBankMessage(type, bankId, handler) {
+        if (!this.#messageHandlers.has(type)) {
+            this.#messageHandlers.set(type, new Set());
+        }
+
+        const p = bankId.percussive ? 1 : 0;
+        const m = bankId.msb || 0;
+        const l = bankId.lsb || 0;
+
+        /** @param {{bankId?: {percussive: number|boolean, msb?: number, lsb?: number}}} msg */
+        const filteredHandler = (msg) => {
+            const rb = msg.bankId;
+            if (rb && (rb.percussive ? 1 : 0) === p && (rb.msb || 0) === m && (rb.lsb || 0) === l) {
+                this.#messageHandlers.get(type)?.delete(filteredHandler);
+                handler(msg);
+            }
+        };
+
+        this.#messageHandlers.get(type)?.add(filteredHandler);
+    }
+
+    /**
      * Send a message to the processor
      * @param {Object} msg - Message to send
      */
@@ -744,7 +772,7 @@ export class AdlMidi {
      */
     async getBankId(bankId) {
         return new Promise((resolve) => {
-            this.#onceMessage('bankId', /** @param {{id: {percussive: number, msb: number, lsb: number}|null}} msg */(msg) => {
+            this.#onceBankMessage('bankId', bankId, /** @param {{id: {percussive: number, msb: number, lsb: number}|null}} msg */(msg) => {
                 resolve(msg.id);
             });
             this.#send({ type: 'getBankId', bankId });
@@ -758,7 +786,7 @@ export class AdlMidi {
      */
     async removeBank(bankId) {
         return new Promise((resolve, reject) => {
-            this.#onceMessage('bankRemoved', /** @param {{success: boolean}} msg */(msg) => {
+            this.#onceBankMessage('bankRemoved', bankId, /** @param {{success: boolean}} msg */(msg) => {
                 if (msg.success) {
                     resolve();
                 } else {
@@ -777,7 +805,7 @@ export class AdlMidi {
      */
     async loadEmbeddedBank(bankId, num) {
         return new Promise((resolve, reject) => {
-            this.#onceMessage('embeddedBankLoaded', /** @param {{success: boolean}} msg */(msg) => {
+            this.#onceBankMessage('embeddedBankLoaded', bankId, /** @param {{success: boolean}} msg */(msg) => {
                 if (msg.success) {
                     resolve();
                 } else {
