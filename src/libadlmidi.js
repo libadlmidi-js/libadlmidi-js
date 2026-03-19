@@ -203,25 +203,20 @@ export class AdlMidi {
     }
 
     /**
-     * Register a one-time handler correlated by bankId.
-     * Allows concurrent bank operations without reply misrouting.
+     * Register a one-time handler correlated by request ID.
+     * Allows concurrent operations of the same type without reply misrouting.
      * @param {string} type - Message type
-     * @param {BankId} bankId - Bank identifier to match against
+     * @param {number} reqId - Request ID to match against
      * @param {Function} handler - Handler function
      */
-    #onceBankMessage(type, bankId, handler) {
+    #onceCorrelatedMessage(type, reqId, handler) {
         if (!this.#messageHandlers.has(type)) {
             this.#messageHandlers.set(type, new Set());
         }
 
-        const p = bankId.percussive ? 1 : 0;
-        const m = bankId.msb || 0;
-        const l = bankId.lsb || 0;
-
-        /** @param {{bankId?: {percussive: number|boolean, msb?: number, lsb?: number}}} msg */
+        /** @param {{reqId?: number}} msg */
         const filteredHandler = (msg) => {
-            const rb = msg.bankId;
-            if (rb && (rb.percussive ? 1 : 0) === p && (rb.msb || 0) === m && (rb.lsb || 0) === l) {
+            if (msg.reqId === reqId) {
                 this.#messageHandlers.get(type)?.delete(filteredHandler);
                 handler(msg);
             }
@@ -773,11 +768,12 @@ export class AdlMidi {
      * @returns {Promise<{percussive: number, msb: number, lsb: number}|null>} Bank ID or null if not found
      */
     async getBankId(bankId) {
+        const reqId = this.#nextRequestId++;
         return new Promise((resolve) => {
-            this.#onceBankMessage('bankId', bankId, /** @param {{id: {percussive: number, msb: number, lsb: number}|null}} msg */(msg) => {
+            this.#onceCorrelatedMessage('bankId', reqId, /** @param {{id: {percussive: number, msb: number, lsb: number}|null}} msg */(msg) => {
                 resolve(msg.id);
             });
-            this.#send({ type: 'getBankId', bankId });
+            this.#send({ type: 'getBankId', bankId, reqId });
         });
     }
 
@@ -787,15 +783,16 @@ export class AdlMidi {
      * @returns {Promise<void>} Resolves on success, rejects on failure
      */
     async removeBank(bankId) {
+        const reqId = this.#nextRequestId++;
         return new Promise((resolve, reject) => {
-            this.#onceBankMessage('bankRemoved', bankId, /** @param {{success: boolean}} msg */(msg) => {
+            this.#onceCorrelatedMessage('bankRemoved', reqId, /** @param {{success: boolean}} msg */(msg) => {
                 if (msg.success) {
                     resolve();
                 } else {
                     reject(new Error('Failed to remove bank'));
                 }
             });
-            this.#send({ type: 'removeBank', bankId });
+            this.#send({ type: 'removeBank', bankId, reqId });
         });
     }
 
@@ -806,15 +803,16 @@ export class AdlMidi {
      * @returns {Promise<void>} Resolves on success, rejects on failure
      */
     async loadEmbeddedBank(bankId, num) {
+        const reqId = this.#nextRequestId++;
         return new Promise((resolve, reject) => {
-            this.#onceBankMessage('embeddedBankLoaded', bankId, /** @param {{success: boolean}} msg */(msg) => {
+            this.#onceCorrelatedMessage('embeddedBankLoaded', reqId, /** @param {{success: boolean}} msg */(msg) => {
                 if (msg.success) {
                     resolve();
                 } else {
                     reject(new Error('Failed to load embedded bank'));
                 }
             });
-            this.#send({ type: 'loadEmbeddedBank', bankId, num });
+            this.#send({ type: 'loadEmbeddedBank', bankId, num, reqId });
         });
     }
 
@@ -938,22 +936,12 @@ export class AdlMidi {
      * @returns {Promise<string>}
      */
     async getTrackTitle(index) {
+        const reqId = this.#nextRequestId++;
         return new Promise((resolve) => {
-            // Use filtered handler instead of #onceMessage to correlate
-            // responses by index, allowing concurrent lookups
-            const type = 'trackTitle';
-            if (!this.#messageHandlers.has(type)) {
-                this.#messageHandlers.set(type, new Set());
-            }
-            /** @param {{title: string, index: number}} msg */
-            const handler = (msg) => {
-                if (msg.index === index) {
-                    this.#messageHandlers.get(type)?.delete(handler);
-                    resolve(msg.title);
-                }
-            };
-            this.#messageHandlers.get(type)?.add(handler);
-            this.#send({ type: 'getTrackTitle', index });
+            this.#onceCorrelatedMessage('trackTitle', reqId, /** @param {{title: string}} msg */(msg) => {
+                resolve(msg.title);
+            });
+            this.#send({ type: 'getTrackTitle', index, reqId });
         });
     }
 
@@ -1087,24 +1075,16 @@ export class AdlMidi {
      * @returns {Promise<void>} Resolves on success, rejects on failure
      */
     async setTrackOptions(track, options) {
+        const reqId = this.#nextRequestId++;
         return new Promise((resolve, reject) => {
-            const type = 'trackOptionsSet';
-            if (!this.#messageHandlers.has(type)) {
-                this.#messageHandlers.set(type, new Set());
-            }
-            /** @param {{success: boolean, track: number}} msg */
-            const handler = (msg) => {
-                if (msg.track === track) {
-                    this.#messageHandlers.get(type)?.delete(handler);
-                    if (msg.success) {
-                        resolve();
-                    } else {
-                        reject(new Error(`Failed to set track options for track ${track}`));
-                    }
+            this.#onceCorrelatedMessage('trackOptionsSet', reqId, /** @param {{success: boolean}} msg */(msg) => {
+                if (msg.success) {
+                    resolve();
+                } else {
+                    reject(new Error(`Failed to set track options for track ${track}`));
                 }
-            };
-            this.#messageHandlers.get(type)?.add(handler);
-            this.#send({ type: 'setTrackOptions', track, options });
+            });
+            this.#send({ type: 'setTrackOptions', track, options, reqId });
         });
     }
 
@@ -1115,24 +1095,16 @@ export class AdlMidi {
      * @returns {Promise<void>} Resolves on success, rejects on failure
      */
     async setChannelEnabled(channel, enabled) {
+        const reqId = this.#nextRequestId++;
         return new Promise((resolve, reject) => {
-            const type = 'channelEnabledSet';
-            if (!this.#messageHandlers.has(type)) {
-                this.#messageHandlers.set(type, new Set());
-            }
-            /** @param {{success: boolean, channel: number}} msg */
-            const handler = (msg) => {
-                if (msg.channel === channel) {
-                    this.#messageHandlers.get(type)?.delete(handler);
-                    if (msg.success) {
-                        resolve();
-                    } else {
-                        reject(new Error(`Failed to set channel ${channel} enabled state`));
-                    }
+            this.#onceCorrelatedMessage('channelEnabledSet', reqId, /** @param {{success: boolean}} msg */(msg) => {
+                if (msg.success) {
+                    resolve();
+                } else {
+                    reject(new Error(`Failed to set channel ${channel} enabled state`));
                 }
-            };
-            this.#messageHandlers.get(type)?.add(handler);
-            this.#send({ type: 'setChannelEnabled', channel, enabled });
+            });
+            this.#send({ type: 'setChannelEnabled', channel, enabled, reqId });
         });
     }
 

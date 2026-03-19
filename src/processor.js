@@ -506,7 +506,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
             case 'getTrackTitle': {
                 const ptr = this.adl._adl_metaTrackTitle(this.midi, msg.index);
                 const title = ptr ? this.adl.UTF8ToString(ptr) : '';
-                this.port.postMessage({ type: 'trackTitle', title, index: msg.index });
+                this.port.postMessage({ type: 'trackTitle', title, index: msg.index, reqId: msg.reqId });
                 break;
             }
 
@@ -566,13 +566,13 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
 
             case 'setTrackOptions': {
                 const result = this.adl._adl_setTrackOptions(this.midi, msg.track, msg.options);
-                this.port.postMessage({ type: 'trackOptionsSet', success: result === 0, track: msg.track });
+                this.port.postMessage({ type: 'trackOptionsSet', success: result === 0, track: msg.track, reqId: msg.reqId });
                 break;
             }
 
             case 'setChannelEnabled': {
                 const result = this.adl._adl_setChannelEnabled(this.midi, msg.channel, msg.enabled ? 1 : 0);
-                this.port.postMessage({ type: 'channelEnabledSet', success: result === 0, channel: msg.channel });
+                this.port.postMessage({ type: 'channelEnabledSet', success: result === 0, channel: msg.channel, reqId: msg.reqId });
                 break;
             }
 
@@ -629,7 +629,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._free(bankIdPtr);
                 this.adl._free(bankPtr);
                 // Echo bankId for concurrent request correlation
-                this.port.postMessage({ type: 'bankId', id, bankId: msg.bankId });
+                this.port.postMessage({ type: 'bankId', id, bankId: msg.bankId, reqId: msg.reqId });
                 break;
             }
 
@@ -650,7 +650,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._free(bankIdPtr);
                 this.adl._free(bankPtr);
                 // Echo bankId for concurrent request correlation
-                this.port.postMessage({ type: 'bankRemoved', success, bankId: msg.bankId });
+                this.port.postMessage({ type: 'bankRemoved', success, bankId: msg.bankId, reqId: msg.reqId });
                 break;
             }
 
@@ -678,7 +678,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl._free(bankIdPtr);
                 this.adl._free(bankPtr);
                 // Echo bankId for concurrent request correlation
-                this.port.postMessage({ type: 'embeddedBankLoaded', success, bankId: msg.bankId });
+                this.port.postMessage({ type: 'embeddedBankLoaded', success, bankId: msg.bankId, reqId: msg.reqId });
                 break;
             }
 
