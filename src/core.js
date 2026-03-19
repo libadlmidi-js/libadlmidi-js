@@ -1004,11 +1004,19 @@ export class AdlMidiCore {
         this._module.HEAPU8[bankIdPtr + 2] = bankId.lsb || 0;
 
         const bankPtr = this._module._malloc(SIZEOF_ADL_BANK);
-        const bankResult = this._module._adl_getBank(this._player, bankIdPtr, 1, bankPtr);
+
+        // Check if bank already exists (flag=0) before creating
+        const existed = this._module._adl_getBank(this._player, bankIdPtr, 0, bankPtr) === 0;
+        // Get or create the bank slot (flag=1)
+        const bankResult = existed ? 0 : this._module._adl_getBank(this._player, bankIdPtr, 1, bankPtr);
 
         let success = false;
         if (bankResult === 0) {
             success = this._module._adl_loadEmbeddedBank(this._player, bankPtr, num) === 0;
+            // Clean up: if we created a new slot but load failed, remove it
+            if (!success && !existed) {
+                this._module._adl_removeBank(this._player, bankPtr);
+            }
         }
 
         this._module._free(bankIdPtr);

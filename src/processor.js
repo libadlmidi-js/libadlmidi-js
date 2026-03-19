@@ -628,7 +628,8 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 }
                 this.adl._free(bankIdPtr);
                 this.adl._free(bankPtr);
-                this.port.postMessage({ type: 'bankId', id });
+                // Echo bankId for concurrent request correlation
+                this.port.postMessage({ type: 'bankId', id, bankId: msg.bankId });
                 break;
             }
 
@@ -648,7 +649,8 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
 
                 this.adl._free(bankIdPtr);
                 this.adl._free(bankPtr);
-                this.port.postMessage({ type: 'bankRemoved', success });
+                // Echo bankId for concurrent request correlation
+                this.port.postMessage({ type: 'bankRemoved', success, bankId: msg.bankId });
                 break;
             }
 
@@ -659,16 +661,24 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 this.adl.HEAPU8[bankIdPtr + 2] = msg.bankId.lsb || 0;
 
                 const bankPtr = this.adl._malloc(AdlMidiProcessor.SIZEOF_ADL_BANK);
-                const bankResult = this.adl._adl_getBank(this.midi, bankIdPtr, 1, bankPtr);
+
+                // Check if bank already exists before creating
+                const existed = this.adl._adl_getBank(this.midi, bankIdPtr, 0, bankPtr) === 0;
+                const bankResult = existed ? 0 : this.adl._adl_getBank(this.midi, bankIdPtr, 1, bankPtr);
 
                 let success = false;
                 if (bankResult === 0) {
                     success = this.adl._adl_loadEmbeddedBank(this.midi, bankPtr, msg.num) === 0;
+                    // Clean up: if we created a new slot but load failed, remove it
+                    if (!success && !existed) {
+                        this.adl._adl_removeBank(this.midi, bankPtr);
+                    }
                 }
 
                 this.adl._free(bankIdPtr);
                 this.adl._free(bankPtr);
-                this.port.postMessage({ type: 'embeddedBankLoaded', success });
+                // Echo bankId for concurrent request correlation
+                this.port.postMessage({ type: 'embeddedBankLoaded', success, bankId: msg.bankId });
                 break;
             }
 
