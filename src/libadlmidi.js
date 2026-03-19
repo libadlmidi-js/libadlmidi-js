@@ -81,6 +81,8 @@ export class AdlMidi {
     #ready = false;
     /** @type {Map<string, Set<Function>>} */
     #messageHandlers = new Map();
+    /** @type {number} */
+    #nextRequestId = 0;
 
     /**
      * Create a new AdlMidi instance
@@ -825,15 +827,25 @@ export class AdlMidi {
      */
     async systemExclusive(data) {
         const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+        const reqId = this.#nextRequestId++;
         return new Promise((resolve, reject) => {
-            this.#onceMessage('systemExclusiveSent', /** @param {{success: boolean}} msg */(msg) => {
-                if (msg.success) {
-                    resolve();
-                } else {
-                    reject(new Error('Failed to send system exclusive message'));
+            const type = 'systemExclusiveSent';
+            if (!this.#messageHandlers.has(type)) {
+                this.#messageHandlers.set(type, new Set());
+            }
+            /** @param {{success: boolean, reqId: number}} msg */
+            const handler = (msg) => {
+                if (msg.reqId === reqId) {
+                    this.#messageHandlers.get(type)?.delete(handler);
+                    if (msg.success) {
+                        resolve();
+                    } else {
+                        reject(new Error('Failed to send system exclusive message'));
+                    }
                 }
-            });
-            this.#send({ type: 'systemExclusive', data: Array.from(bytes) });
+            };
+            this.#messageHandlers.get(type)?.add(handler);
+            this.#send({ type: 'systemExclusive', data: Array.from(bytes), reqId });
         });
     }
 
@@ -1076,13 +1088,22 @@ export class AdlMidi {
      */
     async setTrackOptions(track, options) {
         return new Promise((resolve, reject) => {
-            this.#onceMessage('trackOptionsSet', /** @param {{success: boolean}} msg */(msg) => {
-                if (msg.success) {
-                    resolve();
-                } else {
-                    reject(new Error(`Failed to set track options for track ${track}`));
+            const type = 'trackOptionsSet';
+            if (!this.#messageHandlers.has(type)) {
+                this.#messageHandlers.set(type, new Set());
+            }
+            /** @param {{success: boolean, track: number}} msg */
+            const handler = (msg) => {
+                if (msg.track === track) {
+                    this.#messageHandlers.get(type)?.delete(handler);
+                    if (msg.success) {
+                        resolve();
+                    } else {
+                        reject(new Error(`Failed to set track options for track ${track}`));
+                    }
                 }
-            });
+            };
+            this.#messageHandlers.get(type)?.add(handler);
             this.#send({ type: 'setTrackOptions', track, options });
         });
     }
@@ -1095,13 +1116,22 @@ export class AdlMidi {
      */
     async setChannelEnabled(channel, enabled) {
         return new Promise((resolve, reject) => {
-            this.#onceMessage('channelEnabledSet', /** @param {{success: boolean}} msg */(msg) => {
-                if (msg.success) {
-                    resolve();
-                } else {
-                    reject(new Error(`Failed to set channel ${channel} enabled state`));
+            const type = 'channelEnabledSet';
+            if (!this.#messageHandlers.has(type)) {
+                this.#messageHandlers.set(type, new Set());
+            }
+            /** @param {{success: boolean, channel: number}} msg */
+            const handler = (msg) => {
+                if (msg.channel === channel) {
+                    this.#messageHandlers.get(type)?.delete(handler);
+                    if (msg.success) {
+                        resolve();
+                    } else {
+                        reject(new Error(`Failed to set channel ${channel} enabled state`));
+                    }
                 }
-            });
+            };
+            this.#messageHandlers.get(type)?.add(handler);
             this.#send({ type: 'setChannelEnabled', channel, enabled });
         });
     }
