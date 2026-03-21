@@ -827,22 +827,13 @@ export class AdlMidi {
         const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
         const reqId = this.#nextRequestId++;
         return new Promise((resolve, reject) => {
-            const type = 'systemExclusiveSent';
-            if (!this.#messageHandlers.has(type)) {
-                this.#messageHandlers.set(type, new Set());
-            }
-            /** @param {{success: boolean, reqId: number}} msg */
-            const handler = (msg) => {
-                if (msg.reqId === reqId) {
-                    this.#messageHandlers.get(type)?.delete(handler);
-                    if (msg.success) {
-                        resolve();
-                    } else {
-                        reject(new Error('Failed to send system exclusive message'));
-                    }
+            this.#onceCorrelatedMessage('systemExclusiveSent', reqId, /** @param {{success: boolean}} msg */(msg) => {
+                if (msg.success) {
+                    resolve();
+                } else {
+                    reject(new Error('Failed to send system exclusive message'));
                 }
-            };
-            this.#messageHandlers.get(type)?.add(handler);
+            });
             this.#send({ type: 'systemExclusive', data: Array.from(bytes), reqId });
         });
     }
