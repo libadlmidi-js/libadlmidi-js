@@ -750,15 +750,16 @@ export class AdlMidi {
      * @returns {Promise<void>} Resolves on success, rejects on failure
      */
     async reserveBanks(count) {
+        const reqId = this.#nextRequestId++;
         return new Promise((resolve, reject) => {
-            this.#onceMessage('banksReserved', /** @param {{success: boolean}} msg */(msg) => {
+            this.#onceCorrelatedMessage('banksReserved', reqId, /** @param {{success: boolean}} msg */(msg) => {
                 if (msg.success) {
                     resolve();
                 } else {
                     reject(new Error('Failed to reserve banks'));
                 }
             });
-            this.#send({ type: 'reserveBanks', count });
+            this.#send({ type: 'reserveBanks', count, reqId });
         });
     }
 
