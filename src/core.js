@@ -16,8 +16,8 @@ import {
     encodeInstrument,
 } from './utils/struct.js';
 
-import { Emulator } from './utils/constants.js';
-export { Emulator };
+import { Emulator, TrackOption } from './utils/constants.js';
+export { Emulator, TrackOption };
 
 /**
  * Low-level OPL3 synthesis interface.
@@ -871,10 +871,12 @@ export class AdlMidiCore {
     }
 
     /**
-     * Set track options (e.g., mute/solo).
+     * Set track options (enable, mute, or solo).
+     * Use the TrackOption enum: TrackOption.ON (1), TrackOption.OFF (2), TrackOption.SOLO (3).
+     * Note: Passing 0 is a silent no-op that returns true without changing state.
      *
      * @param {number} track - Track index
-     * @param {number} options - Track options flags
+     * @param {number} options - Track option from TrackOption enum
      * @returns {boolean} True if successful
      */
     setTrackOptions(track, options) {

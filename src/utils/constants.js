@@ -35,3 +35,17 @@ export const Emulator = Object.freeze({
     /** Nuked OPL2 Lite - Lightweight OPL2 emulation for AdLib-era music */
     NUKED_OPL2_LITE: 11,
 });
+
+/**
+ * Track option flags for use with setTrackOptions().
+ * @readonly
+ * @enum {number}
+ */
+export const TrackOption = Object.freeze({
+    /** Enable the track (default state) */
+    ON: 1,
+    /** Mute/disable the track */
+    OFF: 2,
+    /** Solo the track (mute all others) */
+    SOLO: 3,
+});
