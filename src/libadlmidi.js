@@ -15,8 +15,8 @@
  * ```
  */
 
-import { Emulator } from './utils/constants.js';
-export { Emulator };
+import { Emulator, TrackOption } from './utils/constants.js';
+export { Emulator, TrackOption };
 
 /**
  * Bank identifier for instrument access
@@ -854,11 +854,12 @@ export class AdlMidi {
      * @returns {Promise<{text: string, attr: Uint8Array}>} Channel state text and raw per-channel attribute bytes
      */
     async describeChannels() {
+        const reqId = this.#nextRequestId++;
         return new Promise((resolve) => {
-            this.#onceMessage('channelsDescribed', /** @param {{text: string, attr: number[]}} msg */(msg) => {
+            this.#onceCorrelatedMessage('channelsDescribed', reqId, /** @param {{text: string, attr: number[]}} msg */(msg) => {
                 resolve({ text: msg.text, attr: new Uint8Array(msg.attr) });
             });
-            this.#send({ type: 'describeChannels' });
+            this.#send({ type: 'describeChannels', reqId });
         });
     }
 
@@ -1069,9 +1070,11 @@ export class AdlMidi {
     }
 
     /**
-     * Set track options (e.g., mute/solo)
+     * Set track options (enable, mute, or solo)
+     * Use the TrackOption enum: TrackOption.ON (1), TrackOption.OFF (2), TrackOption.SOLO (3).
+     * Note: Passing 0 is a silent no-op that resolves without changing state.
      * @param {number} track - Track index
-     * @param {number} options - Track options flags
+     * @param {number} options - Track option from TrackOption enum
      * @returns {Promise<void>} Resolves on success, rejects on failure
      */
     async setTrackOptions(track, options) {

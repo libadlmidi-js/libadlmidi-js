@@ -98,8 +98,8 @@ export {
     defaultOperator
 } from '../utils/struct.js';
 
-// Re-export Emulator enum
-export { Emulator } from '../utils/constants.js';
+// Re-export enums
+export { Emulator, TrackOption } from '../utils/constants.js';
 `;
 }
 

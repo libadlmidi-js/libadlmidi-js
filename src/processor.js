@@ -709,7 +709,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 const attr = Array.from(this.adl.HEAPU8.slice(attrPtr, attrPtr + text.length));
                 this.adl._free(textPtr);
                 this.adl._free(attrPtr);
-                this.port.postMessage({ type: 'channelsDescribed', text, attr });
+                this.port.postMessage({ type: 'channelsDescribed', text, attr, reqId: msg.reqId });
                 break;
             }
         }
