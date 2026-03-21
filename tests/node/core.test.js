@@ -15,11 +15,13 @@ const DIST_DIR = join(__dirname, '..', '..', 'dist');
 const CORE_PATH = join(DIST_DIR, 'libadlmidi.nuked.core.js');
 const LIGHT_CORE_PATH = join(DIST_DIR, 'libadlmidi.light.core.js');
 
-// Dynamic import of AdlMidiCore
+// Dynamic import of AdlMidiCore and enums
 let AdlMidiCore;
+let TrackOption;
 beforeAll(async () => {
     const module = await import('../../src/core.js');
     AdlMidiCore = module.AdlMidiCore;
+    TrackOption = module.TrackOption;
 });
 
 describe('AdlMidiCore Lifecycle', () => {
@@ -498,12 +500,20 @@ describe('AdlMidiCore Track/Song Control', () => {
         expect(count).toBeGreaterThan(0);
     });
 
-    it('should successfully set track options', () => {
+    it('should mute and re-enable a track via TrackOption enum', () => {
         const count = synth.getTrackCount();
         if (count > 0) {
-            // 0 = ADLMIDI_TrackOption_On (enable track)
-            const result = synth.setTrackOptions(0, 0);
-            expect(result).toBe(true);
+            expect(synth.setTrackOptions(0, TrackOption.OFF)).toBe(true);
+            expect(synth.setTrackOptions(0, TrackOption.ON)).toBe(true);
+        }
+    });
+
+    it('should solo a track via TrackOption enum', () => {
+        const count = synth.getTrackCount();
+        if (count > 0) {
+            expect(synth.setTrackOptions(0, TrackOption.SOLO)).toBe(true);
+            // Re-enable all tracks
+            expect(synth.setTrackOptions(0, TrackOption.ON)).toBe(true);
         }
     });
 
