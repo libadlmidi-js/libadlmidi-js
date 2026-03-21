@@ -600,7 +600,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
             case 'reserveBanks': {
                 // adl_reserveBanks returns the resulting capacity (>= 0), not 0 on success
                 const result = this.adl._adl_reserveBanks(this.midi, msg.count);
-                this.port.postMessage({ type: 'banksReserved', success: result >= 0 });
+                this.port.postMessage({ type: 'banksReserved', success: result >= 0, reqId: msg.reqId });
                 break;
             }
 
