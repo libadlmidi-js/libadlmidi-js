@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TR-262 - libADLMIDI-JS</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999;
+            --accent: #d54;
+            --accent-hover: #e76;
+            --border: #444;
+            --step-off: #2a2a2a;
+            --step-off-alt: #2e2e2e;
+            --step-on: #d54;
+            --step-accent: #fa3;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        h1 {
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        h1 .chip {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        h3 {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 14px;
+            margin: 0 0 12px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 0 0 20px;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            border: 1px solid var(--border);
+        }
+
+        #status {
+            padding: 10px 12px;
+            margin: 12px 0;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 4px 4px 4px 0;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        button:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        label {
+            color: var(--text-secondary);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Power button */
+        .power-btn {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 22px;
+            line-height: 1;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        @keyframes power-pulse {
+            0%, 100% { box-shadow: 0 0 4px rgba(221, 85, 68, 0.2); }
+            50% { box-shadow: 0 0 14px rgba(221, 85, 68, 0.6); }
+        }
+
+        .power-btn:not(:disabled) {
+            animation: power-pulse 2s ease-in-out infinite;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .power-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+
+        .power-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 8px rgba(221, 85, 68, 0.4);
+            background: var(--bg-tertiary);
+        }
+
+        .power-btn:disabled {
+            border-color: var(--border);
+            color: var(--text-secondary);
+            opacity: 0.5;
+            box-shadow: none;
+            background: var(--bg-tertiary);
+        }
+
+        .power-btn.active:disabled {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 8px rgba(221, 85, 68, 0.4);
+            opacity: 1;
+            cursor: default;
+        }
+
+        /* Transport */
+        .transport {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .transport-sep {
+            width: 1px;
+            height: 28px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        input[type="number"] {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 8px;
+            width: 64px;
+            font-family: monospace;
+            font-size: 14px;
+            text-align: center;
+            -moz-appearance: textfield;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            background: var(--bg-tertiary);
+            height: 6px;
+            border-radius: 3px;
+            width: 80px;
+            border: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .param-value {
+            font-family: monospace;
+            font-size: 13px;
+            min-width: 36px;
+            color: var(--text-primary);
+        }
+
+        /* Sequencer grid */
+        .sequencer {
+            overflow-x: auto;
+        }
+
+        .grid-header,
+        .voice-row {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            margin-bottom: 3px;
+        }
+
+        .voice-label {
+            width: 72px;
+            flex-shrink: 0;
+            text-align: right;
+            padding-right: 10px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.15s;
+        }
+
+        .voice-label:hover {
+            color: var(--accent);
+        }
+
+        .steps {
+            display: flex;
+            gap: 3px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .step-num {
+            flex: 1;
+            text-align: center;
+            font-size: 10px;
+            font-family: monospace;
+            color: var(--text-secondary);
+            user-select: none;
+            min-width: 20px;
+        }
+
+        .step-num.beat {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .step {
+            flex: 1;
+            height: 30px;
+            min-width: 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            background: var(--step-off);
+            transition: background 0.08s, transform 0.08s;
+            user-select: none;
+        }
+
+        .step.alt {
+            background: var(--step-off-alt);
+        }
+
+        .step.on {
+            background: var(--step-on);
+        }
+
+        .step.accent {
+            background: var(--step-accent);
+        }
+
+        .step:hover {
+            filter: brightness(1.2);
+        }
+
+        .step.playing {
+            box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+        }
+
+        @keyframes trigger-pulse {
+            0% {
+                transform: scale(1.1);
+                filter: brightness(1.4);
+            }
+
+            100% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+        }
+
+        .step.triggered {
+            animation: trigger-pulse 0.12s ease-out;
+        }
+
+        .mute-spacer {
+            width: 32px;
+            flex-shrink: 0;
+        }
+
+        .mute-btn {
+            width: 32px;
+            height: 30px;
+            flex-shrink: 0;
+            padding: 0;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin: 0;
+        }
+
+        .mute-btn:hover {
+            background: var(--border);
+        }
+
+        .mute-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .voice-row.muted .step {
+            opacity: 0.25;
+        }
+
+        .voice-row.muted .voice-label {
+            opacity: 0.4;
+            text-decoration: line-through;
+        }
+
+        /* Beat group separator */
+        .step.group-start {
+            margin-left: 5px;
+        }
+
+        .step-num.group-start {
+            margin-left: 5px;
+        }
+
+        /* Pattern buttons */
+        .patterns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .patterns button {
+            padding: 7px 14px;
+            font-size: 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .patterns button:hover {
+            background: var(--border);
+            border-color: var(--accent);
+        }
+
+        /* Bank controls */
+        .bank-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>TR-<span class="chip">262</span></h1>
+    <p class="subtitle">OPL3 drum step sequencer powered by <a href="https://github.com/libadlmidi-js/libadlmidi-js" target="_blank" rel="noreferrer">libadlmidi-js</a></p>
+
+    <div id="status">Not initialized - Press Power button</div>
+
+    <div class="card">
+        <div class="transport">
+            <button id="initBtn" class="power-btn" title="Initialize">&#9211;</button>
+            <div class="transport-sep"></div>
+            <button id="playBtn" disabled>&#9654; Play</button>
+            <button id="stopBtn" disabled>&#9632; Stop</button>
+            <button id="clearBtn" disabled>Clear</button>
+            <div class="transport-sep"></div>
+            <label>
+                BPM
+                <input type="number" id="bpmInput" min="1" max="999" value="120" step="1">
+            </label>
+            <label>
+                Swing
+                <input type="range" id="swingSlider" min="0" max="75" value="0">
+                <span class="param-value" id="swingValue">0%</span>
+            </label>
+            <label>
+                Gain
+                <input type="range" id="gainSlider" min="0" max="300" value="100">
+                <span class="param-value" id="gainValue">100%</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="sequencer" id="sequencer"></div>
+    </div>
+
+    <div class="card">
+        <h3>Patterns</h3>
+        <div class="patterns" id="patterns"></div>
+    </div>
+
+    <div class="card">
+        <h3>Bank</h3>
+        <div class="bank-controls">
+            <select id="bankSelect" disabled>
+                <option value="">Loading banks...</option>
+            </select>
+            <button id="loadBankBtn" disabled>Load</button>
+        </div>
+    </div>
+
+    <script type="module">
+        const DRUM_CHANNEL = 9;
+        const NUM_STEPS = 16;
+
+        const voices = [
+            { name: 'Bass Drum', note: 36, abbr: 'BD' },
+            { name: 'Snare',     note: 38, abbr: 'SD' },
+            { name: 'Clap',      note: 39, abbr: 'CP' },
+            { name: 'Cl Hi-Hat', note: 42, abbr: 'CH' },
+            { name: 'Op Hi-Hat', note: 46, abbr: 'OH' },
+            { name: 'Low Tom',   note: 45, abbr: 'LT' },
+            { name: 'High Tom',  note: 48, abbr: 'HT' },
+            { name: 'Cowbell',   note: 56, abbr: 'CB' },
+        ];
+
+        // Grid state: 0 = off, 1 = on, 2 = accent
+        const grid = voices.map(() => new Uint8Array(NUM_STEPS));
+        const muted = new Array(voices.length).fill(false);
+
+        let synth = null;
+        let gainNode = null;
+        let bpm = 120;
+        let swing = 0;
+        let playing = false;
+        let currentStep = -1;
+        let timerId = null;
+        let nextStepTime = 0; // absolute time anchor (performance.now)
+
+        // stepElements[voiceIndex][stepIndex] = DOM element
+        const stepElements = [];
+
+        const PATTERNS = {
+            'Four on the Floor': {
+                BD: 'X...X...X...X...',
+                SD: '....X.......X...',
+                CH: 'X.X.X.X.X.X.X.X.',
+            },
+            'Rock': {
+                BD: 'X.......X.X.....',
+                SD: '....X.......X...',
+                CH: 'X.X.X.X.X.X.X.X.',
+            },
+            'Breakbeat': {
+                BD: 'X..X......X.....',
+                SD: '....X......XX...',
+                CH: 'X.X.X.X.X.X.X.X.',
+                OH: '....X.......X...',
+            },
+            'Hip Hop': {
+                BD: 'X.....X...X.....',
+                SD: '....X.......X..X',
+                CH: 'X.X.X.X.X.X.X.X.',
+                OH: '......X.........',
+            },
+            'Bossa Nova': {
+                BD: 'X..X..X...X.X...',
+                CP: '...X..X...X..X..',
+                CH: 'X.X.X.X.X.X.X.X.',
+                LT: '..X...X...X...X.',
+            },
+            'Reggaeton': {
+                BD: 'X..X..X.X..X..X.',
+                SD: '...X..X....X..X.',
+                CH: 'XXXXXXXXXXXXXXXX',
+            },
+        };
+
+        function setStatus(msg) {
+            document.getElementById('status').textContent = msg;
+        }
+
+        // -- Build the sequencer grid --
+
+        function buildGrid() {
+            const container = document.getElementById('sequencer');
+            container.innerHTML = '';
+
+            // Header row with step numbers
+            const header = document.createElement('div');
+            header.className = 'grid-header';
+
+            const labelSpacer = document.createElement('div');
+            labelSpacer.className = 'voice-label';
+            labelSpacer.style.cursor = 'default';
+            header.appendChild(labelSpacer);
+
+            const headerSteps = document.createElement('div');
+            headerSteps.className = 'steps';
+            for (let s = 0; s < NUM_STEPS; s++) {
+                const num = document.createElement('div');
+                num.className = 'step-num';
+                if (s % 4 === 0) num.classList.add('beat');
+                if (s > 0 && s % 4 === 0) num.classList.add('group-start');
+                num.textContent = s + 1;
+                headerSteps.appendChild(num);
+            }
+            header.appendChild(headerSteps);
+
+            const muteSpacer = document.createElement('div');
+            muteSpacer.className = 'mute-spacer';
+            header.appendChild(muteSpacer);
+
+            container.appendChild(header);
+
+            // Voice rows
+            voices.forEach((voice, vi) => {
+                stepElements[vi] = [];
+
+                const row = document.createElement('div');
+                row.className = 'voice-row';
+                row.dataset.voice = vi;
+
+                // Voice label (click to preview sound)
+                const label = document.createElement('div');
+                label.className = 'voice-label';
+                label.textContent = voice.name;
+                label.title = 'Click to preview';
+                label.addEventListener('click', () => {
+                    if (synth) {
+                        synth.noteOff(DRUM_CHANNEL, voice.note);
+                        synth.noteOn(DRUM_CHANNEL, voice.note, 100);
+                    }
+                });
+                row.appendChild(label);
+
+                // Steps container
+                const stepsDiv = document.createElement('div');
+                stepsDiv.className = 'steps';
+
+                for (let s = 0; s < NUM_STEPS; s++) {
+                    const step = document.createElement('div');
+                    step.className = 'step';
+                    step.dataset.step = s;
+
+                    // Alternating group shading (groups of 4)
+                    if (Math.floor(s / 4) % 2 === 1) step.classList.add('alt');
+
+                    // Visual separator between groups
+                    if (s > 0 && s % 4 === 0) step.classList.add('group-start');
+
+                    // Click cycles: off -> on -> accent -> off
+                    step.addEventListener('click', () => {
+                        grid[vi][s] = (grid[vi][s] + 1) % 3;
+                        updateStepVisual(vi, s);
+                    });
+
+                    step.addEventListener('contextmenu', (e) => e.preventDefault());
+
+                    stepsDiv.appendChild(step);
+                    stepElements[vi][s] = step;
+                }
+
+                row.appendChild(stepsDiv);
+
+                // Mute button
+                const muteBtn = document.createElement('button');
+                muteBtn.className = 'mute-btn';
+                muteBtn.textContent = 'M';
+                muteBtn.title = 'Mute';
+                muteBtn.addEventListener('click', () => {
+                    muted[vi] = !muted[vi];
+                    muteBtn.classList.toggle('active', muted[vi]);
+                    row.classList.toggle('muted', muted[vi]);
+                });
+                row.appendChild(muteBtn);
+
+                container.appendChild(row);
+            });
+        }
+
+        function updateStepVisual(vi, s) {
+            const el = stepElements[vi][s];
+            const val = grid[vi][s];
+            el.classList.remove('on', 'accent', 'alt');
+            if (val === 1) {
+                el.classList.add('on');
+            } else if (val === 2) {
+                el.classList.add('accent');
+            } else {
+                // Restore alternating group shade when off
+                if (Math.floor(s / 4) % 2 === 1) el.classList.add('alt');
+            }
+        }
+
+        function updateAllVisuals() {
+            voices.forEach((_, vi) => {
+                for (let s = 0; s < NUM_STEPS; s++) {
+                    updateStepVisual(vi, s);
+                }
+            });
+        }
+
+        // -- Playback engine --
+
+        function triggerStep(step) {
+            if (!synth) return;
+            voices.forEach((voice, vi) => {
+                if (grid[vi][step] > 0 && !muted[vi]) {
+                    const velocity = grid[vi][step] === 2 ? 127 : 90;
+                    // Release previous voice before retriggering to avoid exhausting polyphony
+                    synth.noteOff(DRUM_CHANNEL, voice.note);
+                    synth.noteOn(DRUM_CHANNEL, voice.note, velocity);
+                }
+            });
+        }
+
+        function updatePlayhead(step, prevStep) {
+            // Clear previous playhead
+            if (prevStep >= 0) {
+                voices.forEach((_, vi) => {
+                    stepElements[vi][prevStep].classList.remove('playing', 'triggered');
+                });
+            }
+
+            // Set new playhead
+            voices.forEach((_, vi) => {
+                const el = stepElements[vi][step];
+                el.classList.add('playing');
+
+                // Pulse animation for triggered voices
+                if (grid[vi][step] > 0 && !muted[vi]) {
+                    el.classList.remove('triggered');
+                    void el.offsetWidth; // force reflow to restart animation
+                    el.classList.add('triggered');
+                }
+            });
+        }
+
+        function getStepDelay(step) {
+            const baseInterval = (60 / bpm / 4) * 1000; // ms per 16th note
+            if (swing === 0) return baseInterval;
+
+            // Swing: stretch on-beat intervals, compress off-beat intervals.
+            // Total pair duration stays constant.
+            if (step % 2 === 0) {
+                return baseInterval * (1 + swing / 100);
+            } else {
+                return baseInterval * (1 - swing / 100);
+            }
+        }
+
+        function scheduleNextStep() {
+            if (!playing) return;
+
+            // Advance the absolute timeline by the current step's duration
+            nextStepTime += getStepDelay(currentStep);
+
+            // If we've fallen more than a beat behind (e.g. tab was backgrounded
+            // or page restored from bfcache), snap the anchor to now instead of
+            // firing a burst of catch-up steps.
+            const now = performance.now();
+            if (now - nextStepTime > getStepDelay(currentStep) * 4) {
+                nextStepTime = now;
+            }
+
+            // Compensate for setTimeout jitter by adjusting the delay
+            const adjustedDelay = Math.max(0, nextStepTime - now);
+
+            timerId = setTimeout(() => {
+                const prevStep = currentStep;
+                currentStep = (currentStep + 1) % NUM_STEPS;
+
+                // Audio first — keep the timing-critical path tight
+                triggerStep(currentStep);
+
+                // Schedule next before doing any DOM work
+                scheduleNextStep();
+
+                // Defer visual updates to the paint frame
+                requestAnimationFrame(() => updatePlayhead(currentStep, prevStep));
+            }, adjustedDelay);
+        }
+
+        function startPlayback() {
+            if (!synth || playing) return;
+            playing = true;
+            document.getElementById('playBtn').textContent = '\u23F8 Pause';
+            setStatus('Playing');
+
+            // Anchor the timeline to now
+            nextStepTime = performance.now();
+
+            // Trigger first step immediately
+            const prevStep = currentStep;
+            currentStep = 0;
+            triggerStep(currentStep);
+            requestAnimationFrame(() => updatePlayhead(currentStep, prevStep));
+            scheduleNextStep();
+        }
+
+        function stopPlayback() {
+            playing = false;
+            clearTimeout(timerId);
+            document.getElementById('playBtn').textContent = '\u25B6 Play';
+
+            // Clear playhead
+            if (currentStep >= 0) {
+                voices.forEach((_, vi) => {
+                    stepElements[vi][currentStep].classList.remove('playing', 'triggered');
+                });
+            }
+            currentStep = -1;
+            setStatus(synth ? 'Ready' : 'Not initialized');
+        }
+
+        // -- Patterns --
+
+        function applyPattern(pattern) {
+            grid.forEach(row => row.fill(0));
+
+            for (const [abbr, steps] of Object.entries(pattern)) {
+                const vi = voices.findIndex(v => v.abbr === abbr);
+                if (vi === -1) continue;
+                for (let s = 0; s < NUM_STEPS && s < steps.length; s++) {
+                    if (steps[s] === 'X') grid[vi][s] = 1;
+                    else if (steps[s] === 'A') grid[vi][s] = 2;
+                }
+            }
+
+            updateAllVisuals();
+        }
+
+        function buildPatternButtons() {
+            const container = document.getElementById('patterns');
+            for (const name of Object.keys(PATTERNS)) {
+                const btn = document.createElement('button');
+                btn.textContent = name;
+                btn.addEventListener('click', () => applyPattern(PATTERNS[name]));
+                container.appendChild(btn);
+            }
+        }
+
+        // -- Event handlers --
+
+        document.getElementById('initBtn').addEventListener('click', async () => {
+            try {
+                setStatus('Loading...');
+                const { AdlMidi } = await import('../src/profiles/nuked.js');
+                synth = new AdlMidi();
+
+                setStatus('Initializing AudioWorklet...');
+                await synth.init();
+
+                // Insert a GainNode for volume control
+                const ctx = synth.audioContext;
+                gainNode = ctx.createGain();
+                gainNode.gain.value = 1.0;
+                synth.node.disconnect();
+                synth.node.connect(gainNode);
+                gainNode.connect(ctx.destination);
+
+                window.synth = synth;
+
+                // Populate bank list
+                const bankSelect = document.getElementById('bankSelect');
+                try {
+                    const banks = await synth.getEmbeddedBanks();
+                    bankSelect.innerHTML = '';
+                    banks.forEach(bank => {
+                        const option = document.createElement('option');
+                        option.value = bank.id;
+                        option.textContent = `${bank.id} - ${bank.name}`;
+                        if (bank.id === 72) option.selected = true;
+                        bankSelect.appendChild(option);
+                    });
+                    if (banks.length === 0) {
+                        bankSelect.innerHTML = '<option value="">No embedded banks (slim build)</option>';
+                    }
+                } catch (e) {
+                    console.warn('Could not load bank list:', e);
+                    bankSelect.innerHTML = '<option value="72">72 - TMB (Duke 3D)</option>';
+                }
+
+                setStatus('Ready. Click voice names to preview, click steps to sequence');
+
+                const initBtn = document.getElementById('initBtn');
+                initBtn.disabled = true;
+                initBtn.classList.add('active');
+                document.getElementById('playBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('clearBtn').disabled = false;
+                document.getElementById('bankSelect').disabled = false;
+                document.getElementById('loadBankBtn').disabled = false;
+
+            } catch (error) {
+                setStatus('Error: ' + error.message);
+                console.error(error);
+            }
+        });
+
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (playing) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            stopPlayback();
+            if (synth) synth.panic();
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            grid.forEach(row => row.fill(0));
+            updateAllVisuals();
+        });
+
+        document.getElementById('bpmInput').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (val >= 1 && val <= 999) bpm = val;
+        });
+
+        document.getElementById('swingSlider').addEventListener('input', (e) => {
+            swing = parseInt(e.target.value);
+            document.getElementById('swingValue').textContent = swing + '%';
+        });
+
+        document.getElementById('gainSlider').addEventListener('input', (e) => {
+            const pct = parseInt(e.target.value);
+            document.getElementById('gainValue').textContent = pct + '%';
+            if (gainNode) gainNode.gain.value = pct / 100;
+        });
+
+        document.getElementById('loadBankBtn').addEventListener('click', async () => {
+            if (!synth) return;
+            const select = document.getElementById('bankSelect');
+            try {
+                await synth.setBank(parseInt(select.value));
+                setStatus('Bank: ' + select.options[select.selectedIndex].textContent);
+            } catch (error) {
+                setStatus('Error: ' + error.message);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (playing) stopPlayback();
+                else if (synth) startPlayback();
+            }
+        });
+
+        // Build UI on load
+        buildGrid();
+        buildPatternButtons();
+    </script>
+</body>
+
+</html>
