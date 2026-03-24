@@ -413,6 +413,40 @@
             gap: 8px;
             flex-wrap: wrap;
         }
+
+        /* VU Meter */
+        .vu-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .vu-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+
+        #vuMeter {
+            flex: 1;
+            height: 18px;
+            border-radius: 3px;
+            background: var(--bg-primary);
+        }
+
+        .vu-db {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            min-width: 52px;
+            text-align: right;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 
@@ -441,9 +475,14 @@
             </label>
             <label>
                 Gain
-                <input type="range" id="gainSlider" min="0" max="500" value="150">
-                <span class="param-value" id="gainValue">150%</span>
+                <input type="range" id="gainSlider" min="0" max="1000" value="200">
+                <span class="param-value" id="gainValue">200%</span>
             </label>
+        </div>
+        <div class="vu-container">
+            <span class="vu-label">VU</span>
+            <canvas id="vuMeter" height="18"></canvas>
+            <span class="vu-db" id="vuDb">-&infin; dB</span>
         </div>
     </div>
 
@@ -493,6 +532,14 @@
         let currentStep = -1;
         let timerId = null;
         let nextStepTime = 0; // absolute time anchor (performance.now)
+
+        // VU meter state
+        let analyser = null;
+        let vuDataArray = null;
+        let vuSmoothedLevel = 0;
+        let peakLevel = 0;
+        let peakHoldTime = 0;
+        let vuAnimId = null;
 
         // stepElements[voiceIndex][stepIndex] = DOM element
         const stepElements = [];
@@ -658,6 +705,97 @@
             });
         }
 
+        // -- VU Meter --
+
+        function resizeVUCanvas() {
+            const canvas = document.getElementById('vuMeter');
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = canvas.clientWidth * dpr;
+            canvas.height = canvas.clientHeight * dpr;
+            canvas.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function initVU() {
+            resizeVUCanvas();
+            new ResizeObserver(resizeVUCanvas).observe(document.getElementById('vuMeter'));
+            renderVU();
+        }
+
+        function renderVU() {
+            const canvas = document.getElementById('vuMeter');
+            const c = canvas.getContext('2d');
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+
+            // Compute RMS level from time-domain data
+            let db = -Infinity;
+            if (analyser && vuDataArray) {
+                analyser.getFloatTimeDomainData(vuDataArray);
+                let sum = 0;
+                for (let i = 0; i < vuDataArray.length; i++) {
+                    sum += vuDataArray[i] * vuDataArray[i];
+                }
+                const rms = Math.sqrt(sum / vuDataArray.length);
+                db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+            }
+
+            // Map -48 dB .. 0 dB to 0 .. 1
+            const rawLevel = Math.max(0, Math.min(1, (db + 48) / 48));
+
+            // Instant attack, smooth decay
+            if (rawLevel > vuSmoothedLevel) {
+                vuSmoothedLevel = rawLevel;
+            } else {
+                vuSmoothedLevel *= 0.92;
+            }
+            const level = vuSmoothedLevel;
+
+            // Peak hold with 1s hold then decay
+            const now = performance.now();
+            if (level > peakLevel) {
+                peakLevel = level;
+                peakHoldTime = now;
+            } else if (now - peakHoldTime > 1000) {
+                peakLevel = Math.max(level, peakLevel - 0.02);
+            }
+
+            // Draw segmented LED bar
+            c.clearRect(0, 0, w, h);
+            const numSegs = 32;
+            const gap = 2;
+            const segW = (w - (numSegs - 1) * gap) / numSegs;
+            const litCount = Math.round(level * numSegs);
+            const peakSeg = Math.min(Math.round(peakLevel * numSegs), numSegs - 1);
+
+            for (let i = 0; i < numSegs; i++) {
+                const x = i * (segW + gap);
+                const ratio = i / numSegs;
+
+                // Color zones: green -> yellow -> red
+                let r, g, b;
+                if (ratio < 0.6) {
+                    r = 34; g = 170; b = 55;
+                } else if (ratio < 0.8) {
+                    r = 210; g = 190; b = 30;
+                } else {
+                    r = 210; g = 55; b = 45;
+                }
+
+                const lit = i < litCount || i === peakSeg;
+                const dim = lit ? 1 : 0.15;
+                c.fillStyle = `rgb(${r * dim},${g * dim},${b * dim})`;
+                c.beginPath();
+                c.roundRect(x, 1, segW, h - 2, 1.5);
+                c.fill();
+            }
+
+            // dB readout
+            document.getElementById('vuDb').textContent =
+                db > -48 ? Math.round(db) + ' dB' : '-\u221E dB';
+
+            vuAnimId = requestAnimationFrame(renderVU);
+        }
+
         // -- Playback engine --
 
         function triggerStep(step) {
@@ -809,13 +947,19 @@
                 setStatus('Initializing AudioWorklet...');
                 await synth.init();
 
-                // Insert a GainNode for volume control
+                // Insert GainNode + AnalyserNode for volume control and VU metering
                 const ctx = synth.audioContext;
                 gainNode = ctx.createGain();
                 gainNode.gain.value = 1.0;
+                analyser = ctx.createAnalyser();
+                analyser.fftSize = 2048;
+                vuDataArray = new Float32Array(analyser.fftSize);
                 synth.node.disconnect();
                 synth.node.connect(gainNode);
-                gainNode.connect(ctx.destination);
+                gainNode.connect(analyser);
+                analyser.connect(ctx.destination);
+
+                initVU();
 
                 window.synth = synth;
 
