@@ -9,6 +9,7 @@ Check out some [examples](https://libadlmidi-js.github.io):
 - [patch editor](https://libadlmidi-js.github.io/examples/patch-editor.html)
 - [midi to wav](https://libadlmidi-js.github.io/examples/midi-to-audio.html)
 - [connect any midi controller](https://libadlmidi-js.github.io/examples/webmidi.html)
+- [tr-262 drum machine](https://libadlmidi-js.github.io/examples/tr-262.html)
 
 ## Features
 
@@ -49,7 +50,7 @@ You can load the library from a CDN to use it right away.
 <script type="module">
   import { AdlMidi } from 'https://unpkg.com/libadlmidi-js/src/profiles/light.js';
   // or: https://cdn.jsdelivr.net/npm/libadlmidi-js/src/profiles/light.js
-  
+
   const synth = new AdlMidi();
   await synth.init();
 </script>
@@ -59,7 +60,7 @@ You can load the library from a CDN to use it right away.
 ```html
 <script type="module">
   import { AdlMidi } from 'https://esm.sh/libadlmidi-js/src/libadlmidi.js';
-  
+
   const synth = new AdlMidi();
   await synth.init(
     'https://esm.sh/libadlmidi-js/dist/libadlmidi.light.processor.js?raw',
