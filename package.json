@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "libadlmidi": {
     "version": "1.6.2",
-    "commit": "73d046d58d5ea20834caa48d034da206e5a628a0"
+    "commit": "5d03efe56dc9044f5bb010007d2023cbb38e8ae6"
   },
   "description": "WebAssembly build of libADLMIDI - OPL3/FM synthesis for the browser",
   "main": "dist/libadlmidi.js",
