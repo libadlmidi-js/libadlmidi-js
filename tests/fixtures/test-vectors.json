@@ -1,6 +1,6 @@
 {
     "_comment": "Golden master test vectors for libADLMIDI-JS audio output verification",
-    "_generated": "2025-12-20",
+    "_generated": "2026-05-13",
     "_note": "These hashes are captured from known-good renders. If they change unexpectedly, it may indicate a regression.",
     "browser": {
         "note_c4_bank72_500ms": {
@@ -17,13 +17,13 @@
             "description": "mamsnake.imf (Wolf3D music) playback for 3 seconds",
             "file": "test-files/mamsnake.imf",
             "durationMs": 3000,
-            "hash": "6481c2fbe60e4dc4af668365bf7d2db9c4330d03f9a1416dfb5b6f29972b4b72"
+            "hash": "aa25dde84973da57c4126513b6e5418a9165f31163c8c21bb68f14860de3934b"
         },
         "midi_canyon_3s": {
             "description": "canyon.mid (classic Windows MIDI) playback for 3 seconds",
             "file": "test-files/canyon.mid",
             "durationMs": 3000,
-            "hash": "eefe36e91c053272dcb4ee8ab1c1c8b89cfa0a916f13db6d49953f99b40130ea"
+            "hash": "e7514fe96bd0e4800926642a772e24115a362f5fe06e4a62d5a92a7968105359"
         }
     },
     "node": {
