@@ -60,7 +60,7 @@ jobs:
         run: npm test
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Run browser tests
         run: npm run test:browser
