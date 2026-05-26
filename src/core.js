@@ -51,6 +51,8 @@ export class AdlMidiCore {
      * @param {Object} options
      * @param {string} options.corePath - Path to the .core.js WASM loader module
      * @param {ArrayBuffer} [options.wasmBinary] - Pre-loaded WASM binary (optional)
+     * @param {number} [options.defaultEmulator] - Emulator to switch to after init.
+     *                            Profile wrappers use this to default to NUKED_FAST.
      * @returns {Promise<AdlMidiCore>}
      */
     static async create(options) {
@@ -73,6 +75,7 @@ export class AdlMidiCore {
         core._sampleRate = 44100;
         core._audioBuffer = null;
         core._audioBufferPtr = null;
+        core._defaultEmulator = options.defaultEmulator;
 
         return core;
     }
@@ -88,6 +91,8 @@ export class AdlMidiCore {
         this._audioBuffer = null;
         /** @private @type {number|null} */
         this._audioBufferPtr = null;
+        /** @private @type {number|undefined} */
+        this._defaultEmulator = undefined;
     }
 
     /**
@@ -106,6 +111,10 @@ export class AdlMidiCore {
 
         if (!this._player) {
             throw new Error('Failed to initialize ADL MIDI player');
+        }
+
+        if (this._defaultEmulator !== undefined) {
+            this._module._adl_switchEmulator(this._player, this._defaultEmulator);
         }
 
         return true;

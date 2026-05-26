@@ -139,10 +139,12 @@ const decoded = decodeInstrument(bytes);
 
 | Profile | Emulator(s) | Usage |
 |---------|-------------|-------|
-| `nuked` | Nuked OPL3 v1.8 | Maximum accuracy, highest CPU usage. |
+| `nuked` | Nuked OPL3 v1.8 + Nuked OPL3 Fast | Maximum accuracy. Defaults to Nuked Fast (bit-exact vs Nuked 1.8, faster). |
 | `dosbox` | DosBox OPL3 | Great balance of speed and accuracy. |
-| `light` | Nuked + DosBox | Flexible for varied performance needs. |
-| `full` | All supported | Includes Opal, Java OPL3, ESFMu, etc. |
+| `light` | Nuked + Nuked Fast, DosBox | Flexible for varied performance needs. Defaults to Nuked Fast. |
+| `full` | All supported | Includes Opal, Java OPL3, ESFMu, etc. Defaults to Nuked Fast where available. |
+
+To opt back to the original Nuked 1.8, pass `{ emulator: Emulator.NUKED }` as the third argument to `init()`, or call `await synth.switchEmulator(Emulator.NUKED)` after init.
 
 ## Documentation
 

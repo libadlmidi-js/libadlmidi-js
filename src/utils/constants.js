@@ -12,7 +12,9 @@
 export const Emulator = Object.freeze({
     /** Nuked OPL3 v1.8 - Most accurate, higher CPU usage */
     NUKED: 0,
-    /** Nuked OPL3 v1.7.4 - Slightly older version */
+    /** Optimized Nuked 1.8 fork by tgies with identical output */
+    NUKED_FAST: 1,
+    /** @deprecated Use NUKED_FAST */
     NUKED_174: 1,
     /** DosBox OPL3 - Good accuracy, lower CPU usage */
     DOSBOX: 2,

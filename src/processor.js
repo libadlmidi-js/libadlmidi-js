@@ -45,6 +45,7 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
             softPan: true,            // Soft stereo panning
             deepVibrato: false,       // Deep vibrato
             deepTremolo: false,       // Deep tremolo
+            emulator: undefined,      // Emulator core (undefined = libADLMIDI default)
             ...options.processorOptions?.settings
         };
 
@@ -104,6 +105,11 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
     applySettings(settings) {
         if (!this.midi) return;
 
+        // Switch emulator first; adl_switchEmulator does a partialReset and a
+        // wrong-order subsequent setBank etc. would otherwise need re-applying.
+        if (settings.emulator !== undefined) {
+            this.adl._adl_switchEmulator(this.midi, settings.emulator);
+        }
         if (settings.numChips !== undefined) {
             this.adl._adl_setNumChips(this.midi, settings.numChips);
         }
