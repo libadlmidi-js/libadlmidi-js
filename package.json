@@ -11,35 +11,43 @@
   "exports": {
     ".": "./dist/libadlmidi.js",
     "./core": {
-      "import": "./src/core.js",
-      "types": "./dist/core.d.ts"
+      "types": "./dist/core.d.ts",
+      "import": "./src/core.js"
     },
     "./structs": {
-      "import": "./src/utils/struct.js",
-      "types": "./dist/utils/struct.d.ts"
+      "types": "./dist/utils/struct.d.ts",
+      "import": "./src/utils/struct.js"
     },
     "./nuked": {
+      "types": "./dist/profiles/nuked.d.ts",
       "import": "./src/profiles/nuked.js"
     },
     "./nuked/slim": {
+      "types": "./dist/profiles/nuked.slim.d.ts",
       "import": "./src/profiles/nuked.slim.js"
     },
     "./dosbox": {
+      "types": "./dist/profiles/dosbox.d.ts",
       "import": "./src/profiles/dosbox.js"
     },
     "./dosbox/slim": {
+      "types": "./dist/profiles/dosbox.slim.d.ts",
       "import": "./src/profiles/dosbox.slim.js"
     },
     "./light": {
+      "types": "./dist/profiles/light.d.ts",
       "import": "./src/profiles/light.js"
     },
     "./light/slim": {
+      "types": "./dist/profiles/light.slim.d.ts",
       "import": "./src/profiles/light.slim.js"
     },
     "./full": {
+      "types": "./dist/profiles/full.d.ts",
       "import": "./src/profiles/full.js"
     },
     "./full/slim": {
+      "types": "./dist/profiles/full.slim.d.ts",
       "import": "./src/profiles/full.slim.js"
     },
     "./dist/*": "./dist/*"
@@ -66,7 +74,10 @@
     "lint:fix": "eslint . --fix",
     "check": "npm run lint && npm run typecheck && npm run sync-version -- --check",
     "sync-version": "node scripts/sync-libadlmidi-version.js",
-    "prepare": "command -v pre-commit >/dev/null && pre-commit install || echo 'pre-commit not found, run: pipx install pre-commit'"
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.js": "eslint --fix"
   },
   "types": "dist/libadlmidi.d.ts",
   "keywords": [
@@ -86,6 +97,8 @@
     "url": "https://github.com/libadlmidi-js/libadlmidi-js.git"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@emnapi/core": "1.10.0",
     "@emnapi/runtime": "1.10.0",
     "@eslint/js": "^10.0.1",
@@ -94,6 +107,8 @@
     "esbuild": "^0.27.2",
     "eslint": "^10.0.3",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
     "playwright": "^1.57.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
