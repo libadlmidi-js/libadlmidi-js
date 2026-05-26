@@ -114,9 +114,11 @@ export class AdlMidi {
      * @param {string} processorUrl - URL to the bundled processor JavaScript file
      * @param {string | null} [wasmUrl=null] - Optional URL to the .wasm file for split builds.
      *                             If not provided, assumes bundled version with embedded WASM.
+     * @param {object} [defaultSettings={}] - Initial synth settings applied before ready.
+     *                             Profile wrappers use this to set a default emulator.
      * @returns {Promise<void>}
      */
-    async init(processorUrl, wasmUrl = null) {
+    async init(processorUrl, wasmUrl = null, defaultSettings = {}) {
         if (!this.ctx) {
             this.ctx = new AudioContext({ sampleRate: 44100 });
         }
@@ -143,7 +145,8 @@ export class AdlMidi {
         this.node = new AudioWorkletNode(this.ctx, 'adl-midi-processor', {
             processorOptions: {
                 sampleRate: this.ctx.sampleRate,
-                wasmBinary: wasmBinary  // null for bundled, ArrayBuffer for split
+                wasmBinary: wasmBinary,  // null for bundled, ArrayBuffer for split
+                settings: defaultSettings
             }
         });
 

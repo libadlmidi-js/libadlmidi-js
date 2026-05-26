@@ -1,9 +1,9 @@
 /**
  * Zero-config dosbox (slim) profile for libADLMIDI-JS
- * 
+ *
  * Exports pre-configured AdlMidi and AdlMidiCore with this profile's WASM.
  * Slim builds require loading a WOPL bank at runtime.
- * 
+ *
  * @module profiles/dosbox.slim
  */
 
@@ -14,6 +14,10 @@ import { AdlMidiCore as BaseAdlMidiCore } from '../core.js';
 const PROCESSOR_URL = new URL('../../dist/libadlmidi.dosbox.slim.processor.js', import.meta.url).href;
 const WASM_URL = new URL('../../dist/libadlmidi.dosbox.slim.core.wasm', import.meta.url).href;
 const CORE_PATH = new URL('../../dist/libadlmidi.dosbox.slim.core.js', import.meta.url).href;
+
+// Default synth settings injected at init. NUKED_FAST is preferred when the
+// profile bundles it (bit-exact vs Nuked 1.8, roughly 1.5x faster).
+const DEFAULT_SETTINGS = {};
 
 /**
  * Pre-configured AdlMidi for dosbox slim profile.
@@ -30,15 +34,17 @@ const CORE_PATH = new URL('../../dist/libadlmidi.dosbox.slim.core.js', import.me
 export class AdlMidi extends BaseAdlMidi {
     /**
      * Initialize the synthesizer with this profile's WASM.
-     * 
+     *
      * @param {string} [processorUrl] - Override processor URL (optional)
      * @param {string} [wasmUrl] - Override WASM URL (optional)
+     * @param {object} [defaultSettings] - Override profile's default synth settings
      * @returns {Promise<void>}
      */
-    async init(processorUrl, wasmUrl) {
+    async init(processorUrl, wasmUrl, defaultSettings) {
         return super.init(
             processorUrl || PROCESSOR_URL,
-            wasmUrl || WASM_URL
+            wasmUrl || WASM_URL,
+            defaultSettings || DEFAULT_SETTINGS
         );
     }
 }
@@ -60,7 +66,8 @@ export class AdlMidiCore {
     /**
      * Create a new AdlMidiCore instance with this profile's WASM.
      * 
-     * @param {{corePath?: string}} [options] - Options (corePath is pre-configured)
+     * @param {{corePath?: string, defaultEmulator?: number, wasmBinary?: ArrayBuffer}} [options]
+     *   Override profile defaults. corePath and defaultEmulator are pre-configured.
      * @returns {Promise<BaseAdlMidiCore>}
      */
     static async create(options = {}) {

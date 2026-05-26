@@ -34,7 +34,11 @@
                 await ctx.audioWorklet.addModule('../../dist/libadlmidi.nuked.processor.js');
 
                 const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
-                    processorOptions: { sampleRate, wasmBinary }
+                    processorOptions: {
+                        sampleRate,
+                        wasmBinary,
+                        settings: { emulator: 1 /* NUKED_FAST */ }
+                    }
                 });
                 node.connect(ctx.destination);
 
@@ -102,7 +106,11 @@
                 await ctx.audioWorklet.addModule('../../dist/libadlmidi.nuked.processor.js');
 
                 const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
-                    processorOptions: { sampleRate, wasmBinary }
+                    processorOptions: {
+                        sampleRate,
+                        wasmBinary,
+                        settings: { emulator: 1 /* NUKED_FAST */ }
+                    }
                 });
                 node.connect(ctx.destination);
 
@@ -196,7 +204,8 @@
                 const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
                     processorOptions: {
                         sampleRate,
-                        wasmBinary  // This is the key - pass pre-fetched WASM
+                        wasmBinary,  // This is the key - pass pre-fetched WASM
+                        settings: { emulator: 1 /* NUKED_FAST */ }
                     }
                 });
                 node.connect(ctx.destination);
@@ -265,7 +274,11 @@
                 await ctx.audioWorklet.addModule(processorUrl);
 
                 const node = new AudioWorkletNode(ctx, 'adl-midi-processor', {
-                    processorOptions: { sampleRate, wasmBinary }
+                    processorOptions: {
+                        sampleRate,
+                        wasmBinary,
+                        settings: { emulator: 1 /* NUKED_FAST */ }
+                    }
                 });
                 node.connect(ctx.destination);
 

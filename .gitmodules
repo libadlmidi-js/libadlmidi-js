@@ -1,4 +1,3 @@
 [submodule "libADLMIDI"]
 	path = libADLMIDI
-	url = https://github.com/tgies/libADLMIDI.git
-	branch = nuked-opl3-fast-port
+	url = https://github.com/Wohlstand/libADLMIDI.git
