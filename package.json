@@ -18,6 +18,10 @@
       "types": "./dist/utils/struct.d.ts",
       "import": "./src/utils/struct.js"
     },
+    "./opl3": {
+      "types": "./dist/utils/opl3.d.ts",
+      "import": "./src/utils/opl3.js"
+    },
     "./nuked": {
       "types": "./dist/profiles/nuked.d.ts",
       "import": "./src/profiles/nuked.js"

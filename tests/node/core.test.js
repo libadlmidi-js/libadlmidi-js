@@ -721,3 +721,90 @@ describe('AdlMidiCore Direct Module Access', () => {
         expect(synth.player).toBeGreaterThan(0);
     });
 });
+
+describe('AdlMidiCore Raw OPL3', () => {
+    let synth;
+
+    beforeAll(async () => {
+        synth = await AdlMidiCore.create({ corePath: CORE_PATH });
+        synth.init(44100);
+    });
+
+    afterAll(() => {
+        if (synth) {
+            synth.close();
+            synth = null;
+        }
+    });
+
+    it('should reserve and read back chip channels', () => {
+        expect(synth.reserveChipChannels(0, 0x7)).toBe(true);
+        expect(synth.getReservedChipChannels(0)).toBe(0x7);
+    });
+
+    it('should release reservation with mask 0', () => {
+        synth.reserveChipChannels(0, 0x7);
+        expect(synth.reserveChipChannels(0, 0)).toBe(true);
+        expect(synth.getReservedChipChannels(0)).toBe(0);
+    });
+
+    it('should return false for invalid chipId on reserve', () => {
+        expect(synth.reserveChipChannels(999, 0)).toBe(false);
+    });
+
+    it('should return 0 for invalid chipId on get', () => {
+        expect(synth.getReservedChipChannels(999)).toBe(0);
+    });
+
+    it('should return false for invalid chipId on rawOPL3', () => {
+        expect(synth.rawOPL3(999, 0, 0)).toBe(false);
+    });
+
+    it('should return true for valid rawOPL3 write', () => {
+        expect(synth.rawOPL3(0, 0x20, 0x01)).toBe(true);
+    });
+
+    it('should produce non-silent audio with raw register writes', async () => {
+        const { noteToFnumBlock, encodeFnumBlock, encodeChannelVoice, channelMask } = await import('../../src/utils/opl3.js');
+
+        synth.reserveChipChannels(0, channelMask(0));
+
+        const instrument = {
+            is4op: false,
+            isPseudo4op: false,
+            isBlank: false,
+            noteOffset1: 0,
+            connection1: 0,
+            feedback1: 0,
+            operators: [
+                {
+                    am: false, vibrato: false, sustaining: false, ksr: false,
+                    attack: 15, decay: 4, sustain: 2, release: 5,
+                    totalLevel: 0, keyScaleLevel: 0, freqMult: 1, waveform: 0,
+                },
+                {
+                    am: false, vibrato: false, sustaining: false, ksr: false,
+                    attack: 15, decay: 4, sustain: 2, release: 5,
+                    totalLevel: 20, keyScaleLevel: 0, freqMult: 1, waveform: 0,
+                },
+            ],
+        };
+
+        const writes = encodeChannelVoice(instrument, 0);
+        for (const { reg, value } of writes) {
+            synth.rawOPL3(0, reg, value);
+        }
+
+        const { fnum, block } = noteToFnumBlock(60);
+        const { fnumLo, fnumHiBlock } = encodeFnumBlock(fnum, block);
+        synth.rawOPL3(0, 0xA0, fnumLo);
+        synth.rawOPL3(0, 0xB0, 0x20 | fnumHiBlock);
+
+        const samples = synth.generate(4096);
+        const maxAbs = samples.reduce((max, s) => Math.max(max, Math.abs(s)), 0);
+        expect(maxAbs).toBeGreaterThan(0.01);
+
+        synth.rawOPL3(0, 0xB0, fnumHiBlock);
+        synth.reserveChipChannels(0, 0);
+    });
+});

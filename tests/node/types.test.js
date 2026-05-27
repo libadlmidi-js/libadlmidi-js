@@ -145,6 +145,10 @@ describe('TypeScript Definitions', () => {
             'setDeepTremolo(enabled: boolean',
             // Looping
             'setLoopEnabled(enabled: boolean',
+            // Raw OPL3
+            'rawOPL3(chipId: number',
+            'reserveChipChannels(chipId: number',
+            'getReservedChipChannels(chipId: number',
         ];
 
         for (const method of expectedMethods) {
