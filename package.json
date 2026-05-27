@@ -97,6 +97,7 @@
     "url": "https://github.com/libadlmidi-js/libadlmidi-js.git"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@emnapi/core": "1.10.0",
@@ -126,5 +127,8 @@
     "light-slim.js",
     "full-slim.js",
     "README.md"
-  ]
+  ],
+  "overrides": {
+    "fflate": "0.8.2"
+  }
 }

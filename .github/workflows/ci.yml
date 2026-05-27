@@ -270,7 +270,7 @@ jobs:
         run: npx publint
 
       - name: Validate TypeScript declarations (attw)
-        run: npx @arethetypeswrong/cli --pack . --profile esm-only --exclude-entrypoints "./dist/*"
+        run: npx @arethetypeswrong/cli --pack . --profile esm-only
 
   security-audit:
     name: Dependency Audit
