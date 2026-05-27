@@ -263,6 +263,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build types
+        run: npm run build:types
+
       - name: Validate package exports (publint)
         run: npx publint
 
