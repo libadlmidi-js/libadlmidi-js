@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 
 // Non-profile exports that should be excluded from consistency checks
-const NON_PROFILE_EXPORTS = new Set(['.', './core', './structs', './dist/*']);
+const NON_PROFILE_EXPORTS = new Set(['.', './core', './structs', './opl3', './dist/*']);
 
 /**
  * Extract profile names from scripts/build-docker-inner.sh EMULATOR_PROFILES array

@@ -609,6 +609,60 @@ export class AdlMidiCore {
         this._module._adl_rt_bankChangeLSB(this._player, channel, lsb);
     }
 
+    // =========================================================================
+    // Raw OPL3 Access
+    // =========================================================================
+
+    /**
+     * Write a raw OPL3 register on a specific chip.
+     *
+     * Bypasses the MIDI voice allocator. The caller is responsible for the
+     * state of targeted channels. Reserve channels first via
+     * {@link reserveChipChannels} to prevent the MIDI driver from
+     * overwriting your register state.
+     *
+     * @param {number} chipId - Zero-based chip index (0 to getNumChipsObtained()-1)
+     * @param {number} reg - OPL3 register address (0x000-0x1FF, bit 8 selects bank)
+     * @param {number} value - Register value (0-255)
+     * @returns {boolean} True on success, false if chipId is out of range
+     */
+    rawOPL3(chipId, reg, value) {
+        this._ensurePlayer();
+        return this._module._adl_rt_rawOPL3(this._player, chipId, reg, value) === 1;
+    }
+
+    /**
+     * Reserve chip channels so the MIDI voice allocator will not use them.
+     *
+     * After reservation, use {@link rawOPL3} to drive those channels
+     * directly. Pass channelMask = 0 to release all reservations.
+     *
+     * @param {number} chipId - Zero-based chip index (0 to getNumChipsObtained()-1)
+     * @param {number} channelMask - Bitmask of per-chip channels to reserve
+     *   (bits 0-22, where bit N reserves per-chip channel N)
+     * @returns {boolean} True on success
+     * @throws {Error} If the device is invalid
+     */
+    reserveChipChannels(chipId, channelMask) {
+        this._ensurePlayer();
+        const result = this._module._adl_reserveChipChannels(this._player, chipId, channelMask);
+        if (result === -1) {
+            throw new Error('Invalid device');
+        }
+        return result === 0;
+    }
+
+    /**
+     * Read back the chip-channel reservation mask.
+     *
+     * @param {number} chipId - Zero-based chip index
+     * @returns {number} Reservation bitmask (0 if invalid chipId)
+     */
+    getReservedChipChannels(chipId) {
+        this._ensurePlayer();
+        return this._module._adl_getReservedChipChannels(this._player, chipId);
+    }
+
     /**
      * Generate audio samples (real-time synthesis).
      *

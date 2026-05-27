@@ -701,6 +701,24 @@ class AdlMidiProcessor extends AudioWorkletProcessor {
                 break;
             }
 
+            // ================== Raw OPL3 ==================
+
+            case 'rawOPL3':
+                this.adl._adl_rt_rawOPL3(this.midi, msg.chipId, msg.reg, msg.value);
+                break;
+
+            case 'reserveChipChannels': {
+                const result = this.adl._adl_reserveChipChannels(this.midi, msg.chipId, msg.channelMask);
+                this.port.postMessage({ type: 'chipChannelsReserved', success: result === 0, chipId: msg.chipId, reqId: msg.reqId });
+                break;
+            }
+
+            case 'getReservedChipChannels': {
+                const mask = this.adl._adl_getReservedChipChannels(this.midi, msg.chipId);
+                this.port.postMessage({ type: 'reservedChipChannels', mask, chipId: msg.chipId, reqId: msg.reqId });
+                break;
+            }
+
             // ================== Debug / Diagnostics ==================
 
             case 'describeChannels': {

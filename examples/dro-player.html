@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRO Player - libADLMIDI-JS Raw OPL3 API</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999;
+            --accent: #c47a2a;
+            --accent-hover: #d98c3c;
+            --border: #444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        h1 span {
+            color: var(--accent);
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid var(--border);
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: border-color 0.2s, background 0.2s;
+            cursor: pointer;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(196, 122, 42, 0.05);
+        }
+
+        .drop-zone input {
+            display: none;
+        }
+
+        button {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 8px 4px 8px 0;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        button:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        #status {
+            padding: 12px;
+            margin: 15px 0;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .progress-container {
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .file-info dt {
+            float: left;
+            width: 120px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .file-info dd {
+            margin-left: 130px;
+            margin-bottom: 4px;
+        }
+
+        select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1><span>DRO Player</span></h1>
+    <p style="color:var(--text-secondary); font-size:14px;">
+        DOSBox Raw OPL capture player using
+        <a href="https://github.com/libadlmidi-js/libadlmidi-js" target="_blank" rel="noreferrer">libadlmidi-js</a>
+        raw OPL3 register API.
+    </p>
+
+    <div class="card">
+        <div class="drop-zone" id="dropZone">
+            <p>Drop a .dro file here, or click to browse</p>
+            <p style="font-size: 12px; color: var(--text-secondary);">
+                Supports DRO v0.1 and v2.0 (OPL2, Dual OPL2, OPL3)
+            </p>
+            <input type="file" id="fileInput" accept=".dro">
+        </div>
+
+        <dl class="file-info" id="fileInfo" style="display:none;">
+            <dt>Format</dt>
+            <dd id="infoVersion">-</dd>
+            <dt>Hardware</dt>
+            <dd id="infoHardware">-</dd>
+            <dt>Duration</dt>
+            <dd id="infoDuration">-</dd>
+        </dl>
+    </div>
+
+    <div class="card">
+        <div class="controls">
+            <button id="playBtn" disabled>Play</button>
+            <button id="stopBtn" disabled>Stop</button>
+            <div>
+                <label style="font-size:12px; color:var(--text-secondary);">Emulator</label>
+                <select id="emulatorSelect">
+                    <option value="0">Nuked OPL3</option>
+                    <option value="1" selected>Nuked OPL3 Fast</option>
+                    <option value="2">DosBox OPL3</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="time-display">
+                <span id="currentTime">0:00.0</span>
+                <span id="totalTime">0:00.0</span>
+            </div>
+        </div>
+
+        <div id="status">Ready</div>
+    </div>
+
+    <script type="module">
+        import { AdlMidi, Emulator } from '../src/profiles/full.js';
+        import { CHANNEL_OPERATORS, channelMask } from '../src/utils/opl3.js';
+
+        let synth = null;
+        let droData = null;
+        let playing = false;
+        let playbackTimer = null;
+
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const emulatorSelect = document.getElementById('emulatorSelect');
+        const statusEl = document.getElementById('status');
+        const progressFill = document.getElementById('progressFill');
+        const currentTimeEl = document.getElementById('currentTime');
+        const totalTimeEl = document.getElementById('totalTime');
+
+        function setStatus(msg) {
+            statusEl.textContent = msg;
+        }
+
+        function formatTime(ms) {
+            const totalSec = ms / 1000;
+            const min = Math.floor(totalSec / 60);
+            const sec = totalSec % 60;
+            return `${min}:${sec.toFixed(1).padStart(4, '0')}`;
+        }
+
+        // ===================== DRO Parser =====================
+
+        const DRO_SIGNATURE = 'DBRAWOPL';
+
+        const HW_NAMES_V1 = { 0: 'OPL2', 1: 'OPL3', 2: 'Dual OPL2' };
+        const HW_NAMES_V2 = { 0: 'OPL2', 1: 'Dual OPL2', 2: 'OPL3' };
+
+        function parseDRO(buffer) {
+            const view = new DataView(buffer);
+            const bytes = new Uint8Array(buffer);
+
+            const sig = String.fromCharCode(...bytes.slice(0, 8));
+            if (sig !== DRO_SIGNATURE) {
+                throw new Error('Not a DRO file');
+            }
+
+            const vMajor = view.getUint16(8, true);
+            const vMinor = view.getUint16(10, true);
+
+            if (vMajor === 0 && vMinor === 1) {
+                return parseDROv1(view, bytes);
+            } else if (vMajor === 2 && vMinor === 0) {
+                return parseDROv2(view, bytes);
+            } else {
+                throw new Error(`Unsupported DRO version ${vMajor}.${vMinor}`);
+            }
+        }
+
+        function parseDROv1(view, bytes) {
+            const lengthMs = view.getUint32(12, true);
+            const lengthBytes = view.getUint32(16, true);
+            const hwType = bytes[20];
+            const hwExtra = [bytes[21], bytes[22], bytes[23]];
+
+            const hwName = HW_NAMES_V1[hwType] || `Unknown (${hwType})`;
+            const isDualOrOpl3 = hwType === 1 || hwType === 2;
+
+            const earlyFormat = hwExtra.some(b => b !== 0);
+            const dataOffset = earlyFormat ? 21 : 24;
+
+            const commands = [];
+            let pos = dataOffset;
+            const end = dataOffset + lengthBytes;
+            let currentChip = 0;
+
+            while (pos < end && pos < bytes.length) {
+                const code = bytes[pos++];
+
+                if (code === 0x00) {
+                    const delay = bytes[pos++] + 1;
+                    commands.push({ type: 'delay', ms: delay });
+                } else if (code === 0x01) {
+                    const delay = view.getUint16(pos, true) + 1;
+                    pos += 2;
+                    commands.push({ type: 'delay', ms: delay });
+                } else if (code === 0x02) {
+                    currentChip = 0;
+                } else if (code === 0x03) {
+                    currentChip = 1;
+                } else if (code === 0x04) {
+                    const reg = bytes[pos++];
+                    const val = bytes[pos++];
+                    const addr = reg + (currentChip ? 0x100 : 0);
+                    commands.push({ type: 'write', reg: addr, value: val });
+                } else {
+                    const val = bytes[pos++];
+                    const addr = code + (currentChip ? 0x100 : 0);
+                    commands.push({ type: 'write', reg: addr, value: val });
+                }
+            }
+
+            return {
+                version: '0.1',
+                hardware: hwName,
+                hardwareType: hwType,
+                isDualOrOpl3,
+                lengthMs,
+                commands,
+            };
+        }
+
+        function parseDROv2(view, bytes) {
+            const lengthPairs = view.getUint32(12, true);
+            const lengthMs = view.getUint32(16, true);
+            const hwType = bytes[20];
+            const format = bytes[21];
+            const compression = bytes[22];
+            const shortDelayCode = bytes[23];
+            const longDelayCode = bytes[24];
+            const codemapLength = bytes[25];
+
+            const hwName = HW_NAMES_V2[hwType] || `Unknown (${hwType})`;
+            const isDualOrOpl3 = hwType === 1 || hwType === 2;
+
+            const codemap = Array.from(bytes.slice(26, 26 + codemapLength));
+            const dataOffset = 26 + codemapLength;
+
+            const commands = [];
+            let pos = dataOffset;
+
+            for (let i = 0; i < lengthPairs && pos + 1 < bytes.length; i++) {
+                const regIndex = bytes[pos++];
+                const val = bytes[pos++];
+
+                if (regIndex === shortDelayCode) {
+                    commands.push({ type: 'delay', ms: (val + 1) });
+                } else if (regIndex === longDelayCode) {
+                    commands.push({ type: 'delay', ms: (val + 1) << 8 });
+                } else {
+                    const highChip = (regIndex & 0x80) ? 0x100 : 0;
+                    const mapIdx = regIndex & 0x7F;
+                    if (mapIdx < codemap.length) {
+                        const reg = codemap[mapIdx] + highChip;
+                        commands.push({ type: 'write', reg, value: val });
+                    }
+                }
+            }
+
+            return {
+                version: '2.0',
+                hardware: hwName,
+                hardwareType: hwType,
+                isDualOrOpl3,
+                lengthMs,
+                commands,
+            };
+        }
+
+        // ===================== Playback Engine =====================
+
+        // libADLMIDI runs in OPL3 mode where C0h bits 4-5 gate audio output.
+        // OPL2 games don't set these bits, and many "OPL3" DRO captures are
+        // actually OPL2 games that DOSBox tagged as OPL3. Rather than trusting
+        // the hardware flag, patch any C0h write where both output bits are
+        // zero (never intentional in OPL3 mode). Genuine OPL3 stereo panning
+        // (L-only or R-only) is preserved.
+        function patchStereo(reg, value) {
+            const low = reg & 0xFF;
+            if (low >= 0xC0 && low <= 0xC8 && (value & 0x30) === 0) {
+                return value | 0x30;
+            }
+            return value;
+        }
+
+        function resetChip() {
+            if (!synth) return;
+            // Disable 4-op mode (libADLMIDI enables this during init)
+            synth.rawOPL3(0, 0x104, 0x00);
+            // Reset both register banks to power-on defaults
+            for (let bank = 0; bank <= 0x100; bank += 0x100) {
+                for (let ch = 0; ch < 9; ch++) {
+                    // Key off + clear frequency
+                    synth.rawOPL3(0, 0xB0 + ch + bank, 0x00);
+                    synth.rawOPL3(0, 0xA0 + ch + bank, 0x00);
+                    // Clear feedback/connection
+                    synth.rawOPL3(0, 0xC0 + ch + bank, 0x00);
+                }
+                // Reset all operator registers
+                for (const [mod, car] of CHANNEL_OPERATORS.slice(bank ? 9 : 0, bank ? 18 : 9)) {
+                    for (const op of [mod, car]) {
+                        synth.rawOPL3(0, 0x20 + op + bank, 0x00);
+                        synth.rawOPL3(0, 0x40 + op + bank, 0x3F);
+                        synth.rawOPL3(0, 0x60 + op + bank, 0x00);
+                        synth.rawOPL3(0, 0x80 + op + bank, 0x00);
+                        synth.rawOPL3(0, 0xE0 + op + bank, 0x00);
+                    }
+                }
+            }
+            // Reset rhythm mode
+            synth.rawOPL3(0, 0xBD, 0x00);
+        }
+
+        async function ensureSynth() {
+            if (synth) return;
+            setStatus('Initializing...');
+            synth = new AdlMidi();
+            await synth.init();
+
+            const emu = parseInt(emulatorSelect.value, 10);
+            if (emu !== Emulator.NUKED_FAST) {
+                await synth.switchEmulator(emu);
+            }
+
+            const allChannels = channelMask(
+                0, 1, 2, 3, 4, 5, 6, 7, 8,
+                9, 10, 11, 12, 13, 14, 15, 16, 17
+            );
+            await synth.reserveChipChannels(0, allChannels);
+
+            setStatus('Ready');
+        }
+
+        function stopPlayback() {
+            playing = false;
+            if (playbackTimer !== null) {
+                clearTimeout(playbackTimer);
+                playbackTimer = null;
+            }
+            resetChip();
+            playBtn.disabled = !droData;
+            stopBtn.disabled = true;
+            progressFill.style.width = '0%';
+            currentTimeEl.textContent = formatTime(0);
+            setStatus('Stopped');
+        }
+
+        async function startPlayback() {
+            if (!droData) return;
+
+            await ensureSynth();
+            stopPlayback();
+
+            playing = true;
+            playBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            setStatus(`Playing ${droData.version} ${droData.hardware}`);
+
+            const commands = droData.commands;
+            let cmdIdx = 0;
+            let elapsedMs = 0;
+            const startTime = performance.now();
+
+            function writeRegisters() {
+                while (cmdIdx < commands.length) {
+                    const cmd = commands[cmdIdx];
+                    if (cmd.type === 'delay') {
+                        cmdIdx++;
+                        elapsedMs += cmd.ms;
+                        const pct = droData.lengthMs > 0
+                            ? Math.min(100, (elapsedMs / droData.lengthMs) * 100)
+                            : 0;
+                        progressFill.style.width = `${pct}%`;
+                        currentTimeEl.textContent = formatTime(elapsedMs);
+
+                        if (playing) {
+                            const targetTime = startTime + elapsedMs;
+                            const sleepMs = Math.max(0, targetTime - performance.now());
+                            playbackTimer = setTimeout(writeRegisters, sleepMs);
+                        }
+                        return;
+                    }
+
+                    synth.rawOPL3(0, cmd.reg, patchStereo(cmd.reg, cmd.value));
+                    cmdIdx++;
+                }
+
+                setStatus('Playback complete');
+                playing = false;
+                playBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+
+            writeRegisters();
+        }
+
+        // ===================== File Handling =====================
+
+        function loadFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    droData = parseDRO(e.target.result);
+                    stopPlayback();
+
+                    document.getElementById('infoVersion').textContent = `DRO v${droData.version}`;
+                    document.getElementById('infoHardware').textContent = droData.hardware;
+                    document.getElementById('infoDuration').textContent = formatTime(droData.lengthMs);
+                    document.getElementById('fileInfo').style.display = 'block';
+                    totalTimeEl.textContent = formatTime(droData.lengthMs);
+
+                    playBtn.disabled = false;
+                    setStatus(`Loaded: ${file.name} (${droData.commands.length} commands)`);
+                } catch (err) {
+                    setStatus(`Error: ${err.message}`);
+                    droData = null;
+                    playBtn.disabled = true;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ===================== UI Wiring =====================
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                loadFile(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                loadFile(fileInput.files[0]);
+            }
+        });
+
+        playBtn.addEventListener('click', startPlayback);
+        stopBtn.addEventListener('click', stopPlayback);
+
+        emulatorSelect.addEventListener('change', async () => {
+            if (!synth) return;
+            const wasPlaying = playing;
+            if (wasPlaying) stopPlayback();
+            const emu = parseInt(emulatorSelect.value, 10);
+            try {
+                await synth.switchEmulator(emu);
+                if (wasPlaying) {
+                    await startPlayback();
+                }
+            } catch (err) {
+                setStatus(`Emulator error: ${err.message}`);
+            }
+        });
+    </script>
+</body>
+
+</html>

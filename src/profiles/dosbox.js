@@ -90,3 +90,24 @@ export {
 
 // Re-export enums
 export { Emulator, TrackOption } from '../utils/constants.js';
+
+// Re-export OPL3 register helpers
+export {
+    CHANNELS_PER_CHIP,
+    CHANNELS_STANDARD,
+    CHANNELS_RHYTHM,
+    OPL3_SAMPLE_RATE,
+    CHANNEL_OPERATORS,
+    channelBank,
+    fnumLoReg,
+    keyOnBlockReg,
+    feedbackConnReg,
+    operatorReg,
+    noteToFnumBlock,
+    encodeFnumBlock,
+    keyOn,
+    keyOff,
+    encodeOperatorRegisters,
+    encodeChannelVoice,
+    channelMask
+} from '../utils/opl3.js';
