@@ -1,0 +1,12 @@
+name: "CodeQL config for libadlmidi-js"
+
+# Skip vendored C/C++ chip emulator source (upstream Wohlstand/libADLMIDI) and
+# any generated artifacts. Test fixtures contain MIDI/IMF binary blobs that
+# would trigger noise.
+paths-ignore:
+  - 'libADLMIDI/**'
+  - 'dist/**'
+  - 'tests/**'
+  - 'test-files/**'
+  - 'examples/**'
+  - 'docs/**'
