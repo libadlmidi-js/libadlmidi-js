@@ -641,10 +641,15 @@ export class AdlMidiCore {
      * @param {number} channelMask - Bitmask of per-chip channels to reserve
      *   (bits 0-22, where bit N reserves per-chip channel N)
      * @returns {boolean} True on success
+     * @throws {Error} If the device is invalid
      */
     reserveChipChannels(chipId, channelMask) {
         this._ensurePlayer();
-        return this._module._adl_reserveChipChannels(this._player, chipId, channelMask) === 0;
+        const result = this._module._adl_reserveChipChannels(this._player, chipId, channelMask);
+        if (result === -1) {
+            throw new Error('Invalid device');
+        }
+        return result === 0;
     }
 
     /**

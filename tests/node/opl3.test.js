@@ -18,6 +18,7 @@ import {
     encodeChannelVoice,
     channelMask,
 } from '../../src/utils/opl3.js';
+import { defaultOperator } from '../../src/utils/struct.js';
 
 describe('OPL3 Constants', () => {
     it('should have correct channel counts', () => {
@@ -282,6 +283,8 @@ describe('encodeChannelVoice', () => {
                 attack: 15, decay: 2, sustain: 3, release: 4,
                 totalLevel: 28, keyScaleLevel: 0, freqMult: 2, waveform: 0,
             },
+            defaultOperator(),
+            defaultOperator(),
         ],
     };
 
@@ -323,6 +326,16 @@ describe('encodeChannelVoice', () => {
         // Carrier (operators[0]) at slot 1 + bank 1
         expect(writes[5].reg).toBe(0x123);
         expect(writes[10].reg).toBe(0x1C0);
+    });
+
+    it('should throw on 4-op instruments', () => {
+        const inst4op = { ...testInstrument, is4op: true };
+        expect(() => encodeChannelVoice(inst4op, 0)).toThrow('2-op');
+    });
+
+    it('should throw on pseudo-4-op instruments', () => {
+        const instPseudo = { ...testInstrument, isPseudo4op: true };
+        expect(() => encodeChannelVoice(instPseudo, 0)).toThrow('2-op');
     });
 });
 

@@ -766,6 +766,7 @@ describe('AdlMidiCore Raw OPL3', () => {
 
     it('should produce non-silent audio with raw register writes', async () => {
         const { noteToFnumBlock, encodeFnumBlock, encodeChannelVoice, channelMask } = await import('../../src/utils/opl3.js');
+        const { defaultOperator } = await import('../../src/utils/struct.js');
 
         synth.reserveChipChannels(0, channelMask(0));
 
@@ -787,6 +788,8 @@ describe('AdlMidiCore Raw OPL3', () => {
                     attack: 15, decay: 4, sustain: 2, release: 5,
                     totalLevel: 20, keyScaleLevel: 0, freqMult: 1, waveform: 0,
                 },
+                defaultOperator(),
+                defaultOperator(),
             ],
         };
 

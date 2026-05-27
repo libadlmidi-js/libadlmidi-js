@@ -172,12 +172,9 @@ export function keyOff(channel, fnum, block) {
  * @returns {Array<{reg: number, value: number}>}
  */
 export function encodeOperatorRegisters(op, channel, operatorSlot) {
-    const bank = channelBank(channel);
-    const offset = CHANNEL_OPERATORS[channel][operatorSlot];
-
     return [
         {
-            reg: 0x20 + offset + bank,
+            reg: operatorReg(0x20, channel, operatorSlot),
             value: ((op.am ? 1 : 0) << 7)
                  | ((op.vibrato ? 1 : 0) << 6)
                  | ((op.sustaining ? 1 : 0) << 5)
@@ -185,22 +182,22 @@ export function encodeOperatorRegisters(op, channel, operatorSlot) {
                  | (op.freqMult & 0x0F),
         },
         {
-            reg: 0x40 + offset + bank,
+            reg: operatorReg(0x40, channel, operatorSlot),
             value: ((op.keyScaleLevel & 0x03) << 6)
                  | (op.totalLevel & 0x3F),
         },
         {
-            reg: 0x60 + offset + bank,
+            reg: operatorReg(0x60, channel, operatorSlot),
             value: ((op.attack & 0x0F) << 4)
                  | (op.decay & 0x0F),
         },
         {
-            reg: 0x80 + offset + bank,
+            reg: operatorReg(0x80, channel, operatorSlot),
             value: ((op.sustain & 0x0F) << 4)
                  | (op.release & 0x0F),
         },
         {
-            reg: 0xE0 + offset + bank,
+            reg: operatorReg(0xE0, channel, operatorSlot),
             value: op.waveform & 0x07,
         },
     ];
@@ -214,11 +211,17 @@ export function encodeOperatorRegisters(op, channel, operatorSlot) {
  * operators[1] = modulator (slot 0). Sets stereo output bits (L+R)
  * on the C0h register, which is required for audible output in OPL3 mode.
  *
+ * Only handles 2-op instruments. Throws on 4-op or pseudo-4-op
+ * instruments, which require two paired channels.
+ *
  * @param {import('./struct.js').Instrument} instrument
  * @param {number} channel - Per-chip channel (0-17)
  * @returns {Array<{reg: number, value: number}>}
  */
 export function encodeChannelVoice(instrument, channel) {
+    if (instrument.is4op || instrument.isPseudo4op) {
+        throw new Error('encodeChannelVoice only supports 2-op instruments');
+    }
     const writes = [
         ...encodeOperatorRegisters(instrument.operators[1], channel, 0),
         ...encodeOperatorRegisters(instrument.operators[0], channel, 1),
