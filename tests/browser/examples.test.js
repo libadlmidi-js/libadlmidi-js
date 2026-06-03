@@ -26,6 +26,29 @@ test.describe('Example Pages', () => {
         expect(errors.filter(e => !e.includes('favicon'))).toHaveLength(0);
     });
 
+    test('opl-breaker.html starts and auditions SFX without errors', async ({ page }) => {
+        const errors = [];
+        page.on('console', msg => {
+            if (msg.type() === 'error') errors.push(msg.text());
+        });
+        page.on('pageerror', err => errors.push(err.message));
+
+        await page.goto('/examples/opl-breaker.html');
+        await expect(page.locator('h1')).toContainText('OPL Breaker');
+
+        // Start initializes audio (raw OPL3 SFX + MIDI music) and begins the game
+        await page.click('#startBtn');
+        await expect(page.locator('#status')).toContainText('Playing', { timeout: 10000 });
+        await expect(page.locator('#testSfxBtn')).toBeEnabled();
+
+        // Audition the full SFX set: raw register writes plus 0xA0/0xB0 pitch sweeps
+        await page.click('#testSfxBtn');
+        await page.waitForTimeout(5500);
+
+        const criticalErrors = errors.filter(e => !e.includes('favicon') && !e.includes('404'));
+        expect(criticalErrors).toHaveLength(0);
+    });
+
     test('webmidi.html loads without errors', async ({ page }) => {
         const errors = [];
         page.on('console', msg => {
