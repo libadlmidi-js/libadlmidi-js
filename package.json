@@ -1,9 +1,9 @@
 {
   "name": "libadlmidi-js",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "libadlmidi": {
     "version": "1.6.2",
-    "commit": "6528dafce641e81ded5d62809445267b82dc0d8d"
+    "commit": "ad001c83551779934bacd642fce801c51a5b7b4c"
   },
   "description": "WebAssembly build of libADLMIDI - OPL3/FM synthesis for the browser",
   "main": "dist/libadlmidi.js",
