@@ -10,6 +10,7 @@ Check out some [examples](https://libadlmidi-js.github.io):
 - [midi to wav](https://libadlmidi-js.github.io/examples/midi-to-audio.html)
 - [connect any midi controller](https://libadlmidi-js.github.io/examples/webmidi.html)
 - [tr-262 drum machine](https://libadlmidi-js.github.io/examples/tr-262.html)
+- [opl breaker](https://libadlmidi-js.github.io/examples/opl-breaker.html)
 
 ## Features
 
@@ -152,6 +153,7 @@ See the `examples/` directory for advanced usage, including:
 - `player.html`: MIDI file playback.
 - `keyboard.html`: Real-time interaction.
 - `patch-editor.html`: Live OPL3 patch editing.
+- `opl-breaker.html`: Raw OPL3 + MIDI playback integration.
 
 ## Contributing
 
