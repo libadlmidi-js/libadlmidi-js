@@ -223,8 +223,12 @@
             synth = new AdlMidi();
             await synth.init();
 
-            // Single chip so raw OPL3 SFX and MIDI music are at comparable volume
-            await synth.configure({ numChips: 1 });
+            // Single chip so raw OPL3 SFX and MIDI music are at comparable volume.
+            // numFourOpChannels: 0 keeps the reserved channels out of 4-op mode:
+            // the default bank has 4-op instruments, and auto-allocation would
+            // pair chip channels 0-5 via register 0x104, which mutes 2-op
+            // programming on them.
+            await synth.configure({ numChips: 1, numFourOpChannels: 0 });
             await synth.reserveChipChannels(0, channelMask(...SFX_CHANNELS, DRONE_CH));
 
             // Music instruments
