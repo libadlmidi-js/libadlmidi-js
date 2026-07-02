@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPL Breaker - libadlmidi-js Raw OPL3 + MIDI Demo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0a0a12;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #ff6a00;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .subtitle a {
+            color: #ff6a00;
+            text-decoration: none;
+        }
+
+        canvas {
+            border: 2px solid #222;
+            border-radius: 4px;
+            cursor: none;
+            display: block;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            width: 640px;
+            padding: 8px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .hud-score {
+            color: #ff6a00;
+        }
+
+        .hud-combo {
+            color: #ffcc00;
+        }
+
+        .hud-lives {
+            color: #ff4444;
+        }
+
+        #status {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #555;
+            font-family: monospace;
+        }
+
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        button {
+            background: #ff6a00;
+            color: #000;
+            border: none;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #ff8533;
+        }
+
+        button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        label {
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>OPL Breaker</h1>
+    <p class="subtitle">
+        Breakout with procedural OPL3 sound effects and reactive drone
+        (raw register writes on reserved chip channels) +
+        background music (MIDI API on unreserved channels).
+        <br>Built with <a href="https://github.com/libadlmidi-js/libadlmidi-js" target="_blank"
+            rel="noreferrer">libadlmidi-js</a>.
+    </p>
+
+    <div class="hud">
+        <span class="hud-score">SCORE: <span id="score">0</span></span>
+        <span class="hud-combo">COMBO: <span id="combo">0</span>x</span>
+        <span class="hud-lives">LIVES: <span id="lives">3</span></span>
+    </div>
+    <canvas id="game" width="640" height="480"></canvas>
+    <div id="status">Click to start</div>
+    <div class="controls">
+        <button id="startBtn">Start</button>
+        <button id="testSfxBtn" disabled>Test SFX</button>
+        <label>
+            <input type="checkbox" id="musicToggle" checked>
+            Music
+        </label>
+    </div>
+
+    <script type="module">
+        import { AdlMidi, Emulator } from '../src/profiles/full.js';
+        import {
+            channelMask,
+            operatorReg,
+            feedbackConnReg,
+            fnumLoReg,
+            keyOnBlockReg,
+            noteToFnumBlock,
+            encodeFnumBlock,
+        } from '../src/utils/opl3.js';
+
+        // ===================== Constants =====================
+
+        const W = 640, H = 480;
+        const BRICK_COLS = 10, BRICK_ROWS = 6;
+        const BRICK_W = 56, BRICK_H = 18, BRICK_PAD = 4;
+        const BRICK_OFFSET_X = (W - (BRICK_COLS * (BRICK_W + BRICK_PAD) - BRICK_PAD)) / 2;
+        const BRICK_OFFSET_Y = 60;
+        const PADDLE_W = 80, PADDLE_H = 12;
+        const BALL_R = 5;
+        const INITIAL_BALL_SPEED = 4.5;
+        const MAX_BALL_SPEED = 8;
+        const MAX_LIVES = 3;
+
+        const ROW_COLORS = ['#ff4444', '#ff6a00', '#ffcc00', '#44cc44', '#4488ff', '#aa44ff'];
+        const ROW_SCORES = [7, 6, 5, 4, 3, 2];
+
+        // Raw OPL3 reserved chip channels.
+        // SFX_CHANNELS is a voice pool: each one-shot plays on a single channel
+        // (like the AdLib games). A new sound takes the least-recently-used
+        // channel, so during a fast combo it steals the most-decayed voice
+        // instead of chopping one that just started.
+        const SFX_CHANNELS = [0, 1, 2, 3, 4, 5, 6, 7];
+        const DRONE_CH = 8;
+
+        // MIDI channels for background music
+        const MUSIC_CH_BASS = 0;
+        const MUSIC_CH_LEAD = 1;
+        const MUSIC_CH_PAD = 2;
+
+        // Baseline MIDI channel volumes (CC7). The music is several summed voices
+        // and a single raw-OPL3 SFX is one voice (~-21 dBFS), so the bed is kept
+        // low and ducks further while a hit sounds, the way DOS games dipped the
+        // music when an SFX stole a channel. Tune these to taste.
+        const MUSIC_VOL = { bass: 82, lead: 74, pad: 50 };
+        const MUSIC_DUCK = 0.4; // music drops to this fraction while an SFX is sounding
+
+        // ===================== Game State =====================
+
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const comboEl = document.getElementById('combo');
+        const livesEl = document.getElementById('lives');
+        const statusEl = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const musicToggle = document.getElementById('musicToggle');
+
+        let synth = null;
+        window._debug = { get synth() { return synth; } };
+        let gameState = 'idle';
+        let score = 0;
+        let combo = 0;
+        let lives = MAX_LIVES;
+        let bricks = [];
+        let paddleX = W / 2;
+        let ball = { x: 0, y: 0, vx: 0, vy: 0, speed: INITIAL_BALL_SPEED };
+        let animFrame = null;
+        let comboDecayTimer = null;
+        let droneActive = false;
+        let sfxDuckUntil = 0;   // music + drone step back under SFX until this timestamp
+        let musicDucked = false;
+
+        // ===================== Audio Init =====================
+
+        async function initAudio() {
+            if (synth) return;
+            statusEl.textContent = 'Loading audio...';
+            synth = new AdlMidi();
+            await synth.init();
+
+            // Single chip so raw OPL3 SFX and MIDI music are at comparable volume.
+            // numFourOpChannels: 0 keeps the reserved channels out of 4-op mode:
+            // the default bank has 4-op instruments, and auto-allocation would
+            // pair chip channels 0-5 via register 0x104, which mutes 2-op
+            // programming on them.
+            await synth.configure({ numChips: 1, numFourOpChannels: 0 });
+            await synth.reserveChipChannels(0, channelMask(...SFX_CHANNELS, DRONE_CH));
+
+            // Music instruments
+            synth.programChange(MUSIC_CH_BASS, 38);
+            synth.programChange(MUSIC_CH_LEAD, 80);
+            synth.programChange(MUSIC_CH_PAD, 52);
+            applyMusicVolume(1);
+
+            statusEl.textContent = 'Ready';
+        }
+
+        // ===================== Raw OPL3 helpers =====================
+
+        function writeOp(ch, slot, am, vib, sus, ksr, mult, ksl, tl, ar, dr, sl, rr, wf) {
+            synth.rawOPL3(0, operatorReg(0x20, ch, slot),
+                ((am & 1) << 7) | ((vib & 1) << 6) | ((sus & 1) << 5) |
+                ((ksr & 1) << 4) | (mult & 0x0F));
+            synth.rawOPL3(0, operatorReg(0x40, ch, slot),
+                ((ksl & 3) << 6) | (tl & 0x3F));
+            synth.rawOPL3(0, operatorReg(0x60, ch, slot),
+                ((ar & 0x0F) << 4) | (dr & 0x0F));
+            synth.rawOPL3(0, operatorReg(0x80, ch, slot),
+                ((sl & 0x0F) << 4) | (rr & 0x0F));
+            synth.rawOPL3(0, operatorReg(0xE0, ch, slot), wf & 0x07);
+        }
+
+        function writeFbConn(ch, fb, conn) {
+            synth.rawOPL3(0, feedbackConnReg(ch), 0x30 | ((fb & 7) << 1) | (conn & 1));
+        }
+
+        function keyOn(ch, note) {
+            const { fnum, block } = noteToFnumBlock(note);
+            const { fnumLo, fnumHiBlock } = encodeFnumBlock(fnum, block);
+            synth.rawOPL3(0, fnumLoReg(ch), fnumLo);
+            synth.rawOPL3(0, keyOnBlockReg(ch), 0x20 | fnumHiBlock);
+        }
+
+        function keyOff(ch) {
+            synth.rawOPL3(0, keyOnBlockReg(ch), 0x00);
+        }
+
+        function setFreq(ch, note) {
+            const { fnum, block } = noteToFnumBlock(note);
+            const { fnumLo, fnumHiBlock } = encodeFnumBlock(fnum, block);
+            synth.rawOPL3(0, fnumLoReg(ch), fnumLo);
+            // Keep key-on set
+            synth.rawOPL3(0, keyOnBlockReg(ch), 0x20 | fnumHiBlock);
+        }
+
+        // ===================== SFX engine (raw OPL3, polyphonic) =====================
+        // writeOp param order: ch, slot, am, vib, sus(EG-type), ksr, mult, ksl,
+        // tl, ar, dr, sl, rr, wf. tl is attenuation (0=loudest). EG-type 1 holds
+        // at the sustain level until key-off; 0 decays on its own (percussive).
+        // Waveform: 0=sine 1=half 2=abs 3=pulse-sine 4=even 5=even-abs 6=square 7=saw.
+        //
+        // Pitch envelopes are real-time 0xA0/0xB0 register sweeps - the thing
+        // that gives arcade SFX their character. setFreq() keeps the key bit set,
+        // so re-writing frequency mid-note bends pitch without retriggering.
+
+        const chSweep = new Map();    // ch -> intervalId (active pitch sweep)
+        const chOff = new Map();      // ch -> timeoutId (scheduled key-off)
+        const chBusyUntil = new Map(); // ch -> performance.now() when the voice frees
+        const sfxPending = new Set(); // tracked one-shot timeouts (arps, motifs)
+
+        function clearChannelTimers(ch) {
+            const s = chSweep.get(ch);
+            if (s) { clearInterval(s); chSweep.delete(ch); }
+            const o = chOff.get(ch);
+            if (o) { clearTimeout(o); chOff.delete(ch); }
+        }
+
+        // Ramp a channel's pitch from n0 to n1 over durMs via raw fnum writes.
+        function sweep(ch, n0, n1, durMs, curve) {
+            const stepMs = 8;
+            const steps = Math.max(1, Math.round(durMs / stepMs));
+            let i = 0;
+            const id = setInterval(() => {
+                i++;
+                const t = i / steps;
+                setFreq(ch, n0 + (n1 - n0) * (curve ? curve(t) : t));
+                if (i >= steps) { clearInterval(id); chSweep.delete(ch); }
+            }, stepMs);
+            chSweep.set(ch, id);
+        }
+
+        function scheduleOff(ch, durMs) {
+            const id = setTimeout(() => { keyOff(ch); chOff.delete(ch); }, durMs);
+            chOff.set(ch, id);
+        }
+
+        function laterSfx(fn, ms) {
+            const id = setTimeout(() => { sfxPending.delete(id); fn(); }, ms);
+            sfxPending.add(id);
+        }
+
+        // Claim a voice for a one-shot of length holdMs. Prefers an idle channel;
+        // when all are busy it steals the one that frees soonest (least audible).
+        function allocSfxChannel(holdMs) {
+            const now = performance.now();
+            let ch = SFX_CHANNELS[0], soonest = Infinity;
+            for (const c of SFX_CHANNELS) {
+                const t = chBusyUntil.get(c) || 0;
+                if (t < soonest) { soonest = t; ch = c; }
+            }
+            chBusyUntil.set(ch, now + holdMs);
+            sfxDuckUntil = now + Math.max(150, holdMs); // let the SFX sit on top of the bed
+            clearChannelTimers(ch);
+            keyOff(ch);
+            return ch;
+        }
+
+        // Stop every SFX voice (used by the exclusive end-of-round sounds).
+        function stopAllSfx() {
+            for (const id of sfxPending) clearTimeout(id);
+            sfxPending.clear();
+            chBusyUntil.clear();
+            for (const ch of SFX_CHANNELS) { clearChannelTimers(ch); keyOff(ch); }
+        }
+
+        // Soft woody "tok" with a quick downward pitch blip. Low feedback keeps
+        // it gentle. Pitch tracks where the ball struck the paddle.
+        function sfxPaddleHit(hitPos) {
+            const ch = allocSfxChannel(230);
+            const note = 57 + Math.round((hitPos + 1) * 6); // ~57..69 across the paddle
+            // dr5/sl4/rr6 gives a ~200ms decay-to-silence "tok" instead of a click.
+            writeOp(ch, 0, 0, 0, 0, 0, 1, 0, 26, 15, 5, 4, 6, 0); // mod: gentle FM body
+            writeOp(ch, 1, 0, 0, 0, 0, 1, 0, 0,  15, 5, 4, 6, 0); // car: sine
+            writeFbConn(ch, 1, 0);
+            keyOn(ch, note + 2);
+            sweep(ch, note + 2, note, 45);
+            scheduleOff(ch, 230);
+        }
+
+        // Bell ding that rises in pitch and brightness with the combo. The FM
+        // partials sit above the square lead so it stays audible over the music.
+        function sfxBrickHit(row, comboLevel) {
+            const ch = allocSfxChannel(240);
+            const note = 64 - row * 2 + Math.min(10, comboLevel) + (Math.random() * 2 - 1);
+            const modTl = Math.max(4, 12 - comboLevel);
+            const fb = Math.min(4, 1 + (comboLevel >> 2));
+            // dr5/sl4/rr6: a ~210ms ringing ding, not a 60ms blip.
+            writeOp(ch, 0, 0, 0, 0, 0, 2, 0, modTl, 15, 5, 4, 6, 0); // mod: octave partial
+            writeOp(ch, 1, 0, 0, 0, 0, 1, 0, 0,     15, 5, 4, 6, 0); // car
+            writeFbConn(ch, fb, 0);
+            keyOn(ch, note);
+            sweep(ch, note, note + 1, 25); // tiny upward sparkle
+            scheduleOff(ch, 240);
+        }
+
+        // Soft sine blip. Fires often, so it stays short and unobtrusive, but
+        // long enough (~100ms) to actually register as a tick.
+        function sfxWallBounce() {
+            const ch = allocSfxChannel(120);
+            writeOp(ch, 0, 0, 0, 0, 0, 1, 0, 30, 15, 8, 3, 8, 0); // mod: barely there
+            writeOp(ch, 1, 0, 0, 0, 0, 1, 0, 4,  15, 7, 3, 8, 0); // car: soft sine
+            writeFbConn(ch, 0, 0);
+            keyOn(ch, 77);
+            scheduleOff(ch, 120);
+        }
+
+        // Descending reedy "aww" - a downward pitch sweep with vibrato.
+        function sfxLifeLost() {
+            stopAllSfx();
+            const ch = SFX_CHANNELS[0];
+            chBusyUntil.set(ch, performance.now() + 450); // hold the voice past the slide
+            sfxDuckUntil = performance.now() + 450;
+            writeOp(ch, 0, 0, 1, 1, 0, 1, 0, 10, 15, 4, 0, 6, 0); // mod: reedy, sustained
+            writeOp(ch, 1, 0, 1, 1, 0, 1, 0, 0,  15, 3, 0, 6, 0); // car: holds, then releases
+            writeFbConn(ch, 4, 0);
+            keyOn(ch, 64);
+            sweep(ch, 64, 46, 400);
+            scheduleOff(ch, 430);
+        }
+
+        // Sad descending three-step brass motif sliding into the cellar.
+        function sfxGameOver() {
+            stopAllSfx();
+            const ch = SFX_CHANNELS[0];
+            chBusyUntil.set(ch, performance.now() + 1300);
+            writeOp(ch, 0, 0, 1, 1, 0, 1, 0, 12, 15, 5, 3, 7, 0); // mod: brassy, vibrato
+            writeOp(ch, 1, 0, 1, 1, 0, 1, 0, 0,  15, 4, 0, 7, 0); // car: sustained
+            writeFbConn(ch, 4, 0);
+            keyOn(ch, 57);
+            laterSfx(() => setFreq(ch, 53), 300);
+            laterSfx(() => setFreq(ch, 50), 600);
+            laterSfx(() => sweep(ch, 50, 36, 500), 700);
+            scheduleOff(ch, 1250);
+        }
+
+        // Ascending bell arpeggio.
+        function sfxWin() {
+            stopAllSfx();
+            const ch = SFX_CHANNELS[0];
+            chBusyUntil.set(ch, performance.now() + 950);
+            const arp = [60, 64, 67, 72, 76, 79, 84];
+            writeOp(ch, 0, 0, 1, 1, 0, 2, 0, 18, 15, 3, 1, 5, 0); // mod: bell, vibrato
+            writeOp(ch, 1, 0, 1, 1, 0, 1, 0, 0,  15, 4, 2, 5, 0); // car
+            writeFbConn(ch, 2, 0);
+            arp.forEach((n, i) => laterSfx(() => keyOn(ch, n), i * 85));
+            laterSfx(() => keyOff(ch), arp.length * 85 + 300);
+        }
+
+        // ===================== Drone (raw OPL3) =====================
+        // Sustained tone on a reserved chip channel. Pitch tracks ball Y,
+        // and the modulator feedback / FM depth ramp with combo so the drone
+        // grits up under pressure. Starts as a clean sine to stay listenable.
+
+        function startDrone() {
+            if (!synth || droneActive) return;
+            droneActive = true;
+            //               ch    slot am vib sus ksr mul ksl tl  ar dr sl rr wf
+            writeOp(DRONE_CH, 0,   0,  1,  1,  0,  1,  0, 22, 10, 0, 0, 4, 0); // mod: vibrato, sustained
+            writeOp(DRONE_CH, 1,   0,  0,  1,  0,  1,  0, 12, 10, 0, 0, 4, 0); // car: sustained sine, sits under SFX
+            writeFbConn(DRONE_CH, 1, 0);
+            keyOn(DRONE_CH, 45);
+        }
+
+        function stopDrone() {
+            if (!synth) return;
+            keyOff(DRONE_CH);
+            droneActive = false;
+        }
+
+        function updateDrone() {
+            if (!synth || !droneActive) return;
+
+            // Pitch: ball near top = higher, near bottom = lower
+            const yNorm = 1 - (ball.y / H);
+            const droneNote = 40 + Math.round(yNorm * 12);
+            setFreq(DRONE_CH, droneNote);
+
+            // FM depth tracks combo
+            const fb = Math.min(7, 1 + Math.floor(combo / 2));
+            const modTl = Math.max(5, 25 - combo * 3);
+            writeFbConn(DRONE_CH, fb, 0);
+            synth.rawOPL3(0, operatorReg(0x40, DRONE_CH, 0), modTl & 0x3F);
+
+            // Carrier volume tracks ball speed but stays a clear notch under the
+            // SFX (a single OPL voice can't exceed ~-21 dBFS, and the SFX are also
+            // single voices, so the sustained drone must sit below them or it
+            // masks the hits). It ducks further while a hit is sounding.
+            const speedNorm = (ball.speed - INITIAL_BALL_SPEED) / (MAX_BALL_SPEED - INITIAL_BALL_SPEED);
+            let carrierTl = Math.round(13 - speedNorm * 4); // ~9..13, well below SFX
+            if (performance.now() < sfxDuckUntil) carrierTl += 11; // duck hard under hits
+            synth.rawOPL3(0, operatorReg(0x40, DRONE_CH, 1), Math.min(63, carrierTl) & 0x3F);
+        }
+
+        // ===================== Music Engine =====================
+
+        // An 8-step-per-bar sequencer over a I-vi-IV-V progression in C.
+        // The pad holds the current triad, the bass repeats a figure
+        // transposed to each chord root (alternating between two figures),
+        // and the lead picks a fresh chord-tone phrase every bar, sometimes
+        // sitting a bar out entirely.
+
+        const STEP_MS = 150;
+        const STEPS_PER_BAR = 8;
+
+        const PROGRESSION = [
+            { root: 36, triad: [60, 64, 67] }, // C
+            { root: 33, triad: [57, 60, 64] }, // Am
+            { root: 29, triad: [53, 57, 60] }, // F
+            { root: 31, triad: [55, 59, 62] }, // G
+        ];
+
+        // Per-step semitone offsets from the chord root. null holds the
+        // sounding note, -1 rests.
+        const BASS_FIGURES = [
+            [0, null, null, 7, 0, null, 7, null],
+            [0, null, 12, null, 0, 7, null, 12],
+        ];
+
+        // Per-step indices into the chord-tone pool (root, third, fifth,
+        // octave, all an octave up). null holds, -1 rests.
+        const LEAD_PHRASES = [
+            [0, null, 1, null, 2, null, 1, null],
+            [2, null, null, 1, 0, null, 1, 2],
+            [3, null, 2, 1, null, 2, null, 0],
+            [0, 1, 2, null, 3, null, 2, null],
+            [-1, null, 2, null, -1, 1, 0, null],
+            [2, 3, null, 2, null, 0, null, -1],
+        ];
+
+        let musicStep = 0;
+        let musicTimer = null;
+        let musicPlaying = false;
+        let lastBassNote = -1, lastLeadNote = -1;
+        let padNotes = [];
+        let leadPhrase = null;
+        let lastPhraseIdx = -1;
+
+        function pickLeadPhrase() {
+            if (Math.random() < 0.2) return null; // rest a whole bar
+            let idx;
+            do {
+                idx = Math.floor(Math.random() * LEAD_PHRASES.length);
+            } while (idx === lastPhraseIdx);
+            lastPhraseIdx = idx;
+            return LEAD_PHRASES[idx];
+        }
+
+        function musicTick() {
+            if (!musicPlaying || !synth) return;
+            const bar = Math.floor(musicStep / STEPS_PER_BAR);
+            const step = musicStep % STEPS_PER_BAR;
+            const chord = PROGRESSION[bar % PROGRESSION.length];
+
+            if (step === 0) {
+                for (const n of padNotes) synth.noteOff(MUSIC_CH_PAD, n);
+                padNotes = chord.triad;
+                for (const n of padNotes) synth.noteOn(MUSIC_CH_PAD, n, 58);
+                leadPhrase = pickLeadPhrase();
+            }
+
+            const bassCell = BASS_FIGURES[bar % BASS_FIGURES.length][step];
+            if (bassCell !== null) {
+                if (lastBassNote >= 0) {
+                    synth.noteOff(MUSIC_CH_BASS, lastBassNote);
+                    lastBassNote = -1;
+                }
+                if (bassCell >= 0) {
+                    lastBassNote = chord.root + bassCell;
+                    synth.noteOn(MUSIC_CH_BASS, lastBassNote, step === 0 ? 104 : 96);
+                }
+            }
+
+            const leadCell = leadPhrase ? leadPhrase[step] : (step === 0 ? -1 : null);
+            if (leadCell !== null) {
+                if (lastLeadNote >= 0) {
+                    synth.noteOff(MUSIC_CH_LEAD, lastLeadNote);
+                    lastLeadNote = -1;
+                }
+                if (leadCell >= 0) {
+                    const tones = [...chord.triad.map(n => n + 12), chord.triad[0] + 24];
+                    lastLeadNote = tones[leadCell];
+                    synth.noteOn(MUSIC_CH_LEAD, lastLeadNote, 78 + Math.floor(Math.random() * 10));
+                }
+            }
+
+            musicStep++;
+            musicTimer = setTimeout(musicTick, STEP_MS);
+        }
+
+        function applyMusicVolume(scale) {
+            if (!synth) return;
+            synth.controlChange(MUSIC_CH_BASS, 7, Math.round(MUSIC_VOL.bass * scale));
+            synth.controlChange(MUSIC_CH_LEAD, 7, Math.round(MUSIC_VOL.lead * scale));
+            synth.controlChange(MUSIC_CH_PAD, 7, Math.round(MUSIC_VOL.pad * scale));
+        }
+
+        // Edge-triggered: drop the music to MUSIC_DUCK while a hit is sounding,
+        // restore it during lulls. Only fires CC7 on the duck/restore transition.
+        function updateMusicDuck() {
+            if (!synth || !musicPlaying) return;
+            const ducked = performance.now() < sfxDuckUntil;
+            if (ducked === musicDucked) return;
+            musicDucked = ducked;
+            applyMusicVolume(ducked ? MUSIC_DUCK : 1);
+        }
+
+        function startMusic() {
+            if (!musicToggle.checked) return;
+            musicPlaying = true;
+            musicDucked = false;
+            applyMusicVolume(1);
+            musicStep = 0;
+            lastPhraseIdx = -1;
+            musicTick();
+        }
+
+        function stopMusic() {
+            musicPlaying = false;
+            if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
+            if (synth) {
+                if (lastBassNote >= 0) synth.noteOff(MUSIC_CH_BASS, lastBassNote);
+                if (lastLeadNote >= 0) synth.noteOff(MUSIC_CH_LEAD, lastLeadNote);
+                for (const n of padNotes) synth.noteOff(MUSIC_CH_PAD, n);
+                padNotes = [];
+                lastBassNote = -1;
+                lastLeadNote = -1;
+            }
+        }
+
+        musicToggle.addEventListener('change', () => {
+            if (musicToggle.checked && gameState === 'playing') startMusic();
+            else stopMusic();
+        });
+
+        // ===================== Game Logic =====================
+
+        function createBricks() {
+            bricks = [];
+            for (let r = 0; r < BRICK_ROWS; r++) {
+                for (let c = 0; c < BRICK_COLS; c++) {
+                    bricks.push({
+                        x: BRICK_OFFSET_X + c * (BRICK_W + BRICK_PAD),
+                        y: BRICK_OFFSET_Y + r * (BRICK_H + BRICK_PAD),
+                        w: BRICK_W,
+                        h: BRICK_H,
+                        row: r,
+                        alive: true,
+                    });
+                }
+            }
+        }
+
+        function resetBall() {
+            ball.x = paddleX;
+            ball.y = H - 40 - BALL_R;
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+            ball.speed = INITIAL_BALL_SPEED;
+            ball.vx = Math.cos(angle) * ball.speed;
+            ball.vy = Math.sin(angle) * ball.speed;
+        }
+
+        function startGame() {
+            stopAllSfx();
+            score = 0;
+            combo = 0;
+            lives = MAX_LIVES;
+            createBricks();
+            resetBall();
+            gameState = 'playing';
+            updateHUD();
+            startMusic();
+            startDrone();
+            if (animFrame) cancelAnimationFrame(animFrame);
+            gameLoop();
+        }
+
+        function updateHUD() {
+            scoreEl.textContent = score;
+            comboEl.textContent = combo;
+            livesEl.textContent = lives;
+        }
+
+        function bumpCombo() {
+            combo++;
+            if (comboDecayTimer) clearTimeout(comboDecayTimer);
+            comboDecayTimer = setTimeout(() => { combo = 0; updateHUD(); }, 2000);
+            updateHUD();
+        }
+
+        function update() {
+            if (gameState !== 'playing') return;
+
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+
+            if (ball.x - BALL_R <= 0) {
+                ball.x = BALL_R;
+                ball.vx = Math.abs(ball.vx);
+                sfxWallBounce();
+            }
+            if (ball.x + BALL_R >= W) {
+                ball.x = W - BALL_R;
+                ball.vx = -Math.abs(ball.vx);
+                sfxWallBounce();
+            }
+            if (ball.y - BALL_R <= 0) {
+                ball.y = BALL_R;
+                ball.vy = Math.abs(ball.vy);
+                sfxWallBounce();
+            }
+
+            if (ball.y + BALL_R > H) {
+                lives--;
+                combo = 0;
+                updateHUD();
+                sfxLifeLost();
+                if (lives <= 0) {
+                    gameState = 'gameover';
+                    stopMusic();
+                    stopDrone();
+                    sfxGameOver();
+                    statusEl.textContent = 'GAME OVER - Click Start to retry';
+                    startBtn.disabled = false;
+                    return;
+                }
+                resetBall();
+                return;
+            }
+
+            const paddleY = H - 30;
+            if (ball.vy > 0 &&
+                ball.y + BALL_R >= paddleY &&
+                ball.y + BALL_R <= paddleY + PADDLE_H + ball.speed &&
+                ball.x >= paddleX - PADDLE_W / 2 &&
+                ball.x <= paddleX + PADDLE_W / 2) {
+                ball.y = paddleY - BALL_R;
+                const hitPos = (ball.x - paddleX) / (PADDLE_W / 2);
+                const angle = -Math.PI / 2 + hitPos * Math.PI / 3;
+                ball.speed = Math.min(MAX_BALL_SPEED, ball.speed + 0.02);
+                ball.vx = Math.cos(angle) * ball.speed;
+                ball.vy = Math.sin(angle) * ball.speed;
+                sfxPaddleHit(hitPos);
+            }
+
+            for (const brick of bricks) {
+                if (!brick.alive) continue;
+                if (ball.x + BALL_R > brick.x &&
+                    ball.x - BALL_R < brick.x + brick.w &&
+                    ball.y + BALL_R > brick.y &&
+                    ball.y - BALL_R < brick.y + brick.h) {
+
+                    brick.alive = false;
+                    bumpCombo();
+                    score += ROW_SCORES[brick.row] * Math.max(1, combo);
+                    updateHUD();
+                    sfxBrickHit(brick.row, combo);
+
+                    const overlapLeft = (ball.x + BALL_R) - brick.x;
+                    const overlapRight = (brick.x + brick.w) - (ball.x - BALL_R);
+                    const overlapTop = (ball.y + BALL_R) - brick.y;
+                    const overlapBottom = (brick.y + brick.h) - (ball.y - BALL_R);
+                    const minOverlapX = Math.min(overlapLeft, overlapRight);
+                    const minOverlapY = Math.min(overlapTop, overlapBottom);
+
+                    if (minOverlapX < minOverlapY) {
+                        ball.vx = -ball.vx;
+                    } else {
+                        ball.vy = -ball.vy;
+                    }
+
+                    ball.speed = Math.min(MAX_BALL_SPEED, ball.speed + 0.03);
+                    const mag = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+                    ball.vx = (ball.vx / mag) * ball.speed;
+                    ball.vy = (ball.vy / mag) * ball.speed;
+
+                    break;
+                }
+            }
+
+            if (bricks.every(b => !b.alive)) {
+                gameState = 'won';
+                stopMusic();
+                stopDrone();
+                sfxWin();
+                statusEl.textContent = `YOU WIN! Score: ${score} - Click Start to play again`;
+                startBtn.disabled = false;
+            }
+
+            updateDrone();
+            updateMusicDuck();
+        }
+
+        // ===================== Rendering =====================
+
+        function draw() {
+            ctx.fillStyle = '#0a0a12';
+            ctx.fillRect(0, 0, W, H);
+
+            for (const brick of bricks) {
+                if (!brick.alive) continue;
+                ctx.fillStyle = ROW_COLORS[brick.row];
+                ctx.fillRect(brick.x, brick.y, brick.w, brick.h);
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.fillRect(brick.x, brick.y, brick.w, 3);
+            }
+
+            const paddleY = H - 30;
+            ctx.fillStyle = '#ccc';
+            ctx.fillRect(paddleX - PADDLE_W / 2, paddleY, PADDLE_W, PADDLE_H);
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(paddleX - PADDLE_W / 2, paddleY, PADDLE_W, 3);
+
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (combo >= 5) {
+                ctx.fillStyle = `rgba(255, 106, 0, ${0.03 + Math.sin(Date.now() / 100) * 0.02})`;
+                ctx.fillRect(0, 0, W, H);
+            }
+
+            if (gameState === 'idle') {
+                drawCenteredText('OPL BREAKER', H / 2 - 20, 36, '#ff6a00');
+                drawCenteredText('Click Start to play', H / 2 + 20, 16, '#888');
+            } else if (gameState === 'gameover') {
+                drawCenteredText('GAME OVER', H / 2 - 10, 36, '#ff4444');
+            } else if (gameState === 'won') {
+                drawCenteredText('YOU WIN!', H / 2 - 10, 36, '#ffcc00');
+            }
+        }
+
+        function drawCenteredText(text, y, size, color) {
+            ctx.font = `bold ${size}px monospace`;
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.fillText(text, W / 2, y);
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            animFrame = requestAnimationFrame(gameLoop);
+        }
+
+        // ===================== Input =====================
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = W / rect.width;
+            paddleX = Math.max(PADDLE_W / 2, Math.min(W - PADDLE_W / 2,
+                (e.clientX - rect.left) * scaleX));
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = W / rect.width;
+            paddleX = Math.max(PADDLE_W / 2, Math.min(W - PADDLE_W / 2,
+                (e.touches[0].clientX - rect.left) * scaleX));
+        }, { passive: false });
+
+        startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true;
+            await initAudio();
+            document.getElementById('testSfxBtn').disabled = false;
+            startGame();
+            statusEl.textContent = 'Playing';
+        });
+
+        document.getElementById('testSfxBtn').addEventListener('click', () => {
+            if (!synth) return;
+            // Audition every SFX in sequence (timings spaced to each sound's tail).
+            const steps = [
+                [0,    () => sfxPaddleHit(-0.6)],
+                [220,  () => sfxPaddleHit(0.6)],
+                [520,  () => sfxBrickHit(4, 0)],
+                [820,  () => sfxBrickHit(2, 5)],
+                [1120, () => sfxBrickHit(0, 11)],
+                [1500, () => sfxWallBounce()],
+                [1720, () => sfxWallBounce()],
+                [2100, () => sfxLifeLost()],
+                [3000, () => sfxGameOver()],
+                [4900, () => sfxWin()],
+            ];
+            for (const [at, fn] of steps) setTimeout(fn, at);
+        });
+
+        draw();
+    </script>
+</body>
+
+</html>
