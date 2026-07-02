@@ -478,27 +478,99 @@
 
         // ===================== Music Engine =====================
 
-        const BASS_PATTERN = [
-            { note: 36, dur: 300 }, { note: 36, dur: 150 }, { note: 43, dur: 150 },
-            { note: 36, dur: 300 }, { note: 36, dur: 150 }, { note: 41, dur: 150 },
-            { note: 38, dur: 300 }, { note: 38, dur: 150 }, { note: 45, dur: 150 },
-            { note: 41, dur: 300 }, { note: 43, dur: 150 }, { note: 41, dur: 150 },
+        // An 8-step-per-bar sequencer over a I-vi-IV-V progression in C.
+        // The pad holds the current triad, the bass repeats a figure
+        // transposed to each chord root (alternating between two figures),
+        // and the lead picks a fresh chord-tone phrase every bar, sometimes
+        // sitting a bar out entirely.
+
+        const STEP_MS = 150;
+        const STEPS_PER_BAR = 8;
+
+        const PROGRESSION = [
+            { root: 36, triad: [60, 64, 67] }, // C
+            { root: 33, triad: [57, 60, 64] }, // Am
+            { root: 29, triad: [53, 57, 60] }, // F
+            { root: 31, triad: [55, 59, 62] }, // G
         ];
 
-        const LEAD_PATTERN = [
-            { note: 72, dur: 150 }, { note: 0, dur: 150 },
-            { note: 76, dur: 150 }, { note: 0, dur: 150 },
-            { note: 79, dur: 300 }, { note: 0, dur: 150 },
-            { note: 76, dur: 150 },
-            { note: 74, dur: 150 }, { note: 0, dur: 150 },
-            { note: 72, dur: 150 }, { note: 0, dur: 150 },
-            { note: 67, dur: 300 }, { note: 0, dur: 300 },
+        // Per-step semitone offsets from the chord root. null holds the
+        // sounding note, -1 rests.
+        const BASS_FIGURES = [
+            [0, null, null, 7, 0, null, 7, null],
+            [0, null, 12, null, 0, 7, null, 12],
         ];
 
-        let bassIdx = 0, leadIdx = 0;
-        let bassTimer = null, leadTimer = null;
-        let lastBassNote = -1, lastLeadNote = -1;
+        // Per-step indices into the chord-tone pool (root, third, fifth,
+        // octave, all an octave up). null holds, -1 rests.
+        const LEAD_PHRASES = [
+            [0, null, 1, null, 2, null, 1, null],
+            [2, null, null, 1, 0, null, 1, 2],
+            [3, null, 2, 1, null, 2, null, 0],
+            [0, 1, 2, null, 3, null, 2, null],
+            [-1, null, 2, null, -1, 1, 0, null],
+            [2, 3, null, 2, null, 0, null, -1],
+        ];
+
+        let musicStep = 0;
+        let musicTimer = null;
         let musicPlaying = false;
+        let lastBassNote = -1, lastLeadNote = -1;
+        let padNotes = [];
+        let leadPhrase = null;
+        let lastPhraseIdx = -1;
+
+        function pickLeadPhrase() {
+            if (Math.random() < 0.2) return null; // rest a whole bar
+            let idx;
+            do {
+                idx = Math.floor(Math.random() * LEAD_PHRASES.length);
+            } while (idx === lastPhraseIdx);
+            lastPhraseIdx = idx;
+            return LEAD_PHRASES[idx];
+        }
+
+        function musicTick() {
+            if (!musicPlaying || !synth) return;
+            const bar = Math.floor(musicStep / STEPS_PER_BAR);
+            const step = musicStep % STEPS_PER_BAR;
+            const chord = PROGRESSION[bar % PROGRESSION.length];
+
+            if (step === 0) {
+                for (const n of padNotes) synth.noteOff(MUSIC_CH_PAD, n);
+                padNotes = chord.triad;
+                for (const n of padNotes) synth.noteOn(MUSIC_CH_PAD, n, 58);
+                leadPhrase = pickLeadPhrase();
+            }
+
+            const bassCell = BASS_FIGURES[bar % BASS_FIGURES.length][step];
+            if (bassCell !== null) {
+                if (lastBassNote >= 0) {
+                    synth.noteOff(MUSIC_CH_BASS, lastBassNote);
+                    lastBassNote = -1;
+                }
+                if (bassCell >= 0) {
+                    lastBassNote = chord.root + bassCell;
+                    synth.noteOn(MUSIC_CH_BASS, lastBassNote, step === 0 ? 104 : 96);
+                }
+            }
+
+            const leadCell = leadPhrase ? leadPhrase[step] : (step === 0 ? -1 : null);
+            if (leadCell !== null) {
+                if (lastLeadNote >= 0) {
+                    synth.noteOff(MUSIC_CH_LEAD, lastLeadNote);
+                    lastLeadNote = -1;
+                }
+                if (leadCell >= 0) {
+                    const tones = [...chord.triad.map(n => n + 12), chord.triad[0] + 24];
+                    lastLeadNote = tones[leadCell];
+                    synth.noteOn(MUSIC_CH_LEAD, lastLeadNote, 78 + Math.floor(Math.random() * 10));
+                }
+            }
+
+            musicStep++;
+            musicTimer = setTimeout(musicTick, STEP_MS);
+        }
 
         function applyMusicVolume(scale) {
             if (!synth) return;
@@ -517,58 +589,24 @@
             applyMusicVolume(ducked ? MUSIC_DUCK : 1);
         }
 
-        function playBassNote() {
-            if (!musicPlaying || !synth) return;
-            if (lastBassNote >= 0) synth.noteOff(MUSIC_CH_BASS, lastBassNote);
-            const entry = BASS_PATTERN[bassIdx % BASS_PATTERN.length];
-            if (entry.note > 0) {
-                synth.noteOn(MUSIC_CH_BASS, entry.note, 100);
-                lastBassNote = entry.note;
-            } else {
-                lastBassNote = -1;
-            }
-            bassIdx++;
-            bassTimer = setTimeout(playBassNote, entry.dur);
-        }
-
-        function playLeadNote() {
-            if (!musicPlaying || !synth) return;
-            if (lastLeadNote >= 0) synth.noteOff(MUSIC_CH_LEAD, lastLeadNote);
-            const entry = LEAD_PATTERN[leadIdx % LEAD_PATTERN.length];
-            if (entry.note > 0) {
-                synth.noteOn(MUSIC_CH_LEAD, entry.note, 90);
-                lastLeadNote = entry.note;
-            } else {
-                lastLeadNote = -1;
-            }
-            leadIdx++;
-            leadTimer = setTimeout(playLeadNote, entry.dur);
-        }
-
         function startMusic() {
             if (!musicToggle.checked) return;
             musicPlaying = true;
             musicDucked = false;
             applyMusicVolume(1);
-            bassIdx = 0;
-            leadIdx = 0;
-            playBassNote();
-            playLeadNote();
-            synth.noteOn(MUSIC_CH_PAD, 60, 60);
-            synth.noteOn(MUSIC_CH_PAD, 64, 60);
-            synth.noteOn(MUSIC_CH_PAD, 67, 60);
+            musicStep = 0;
+            lastPhraseIdx = -1;
+            musicTick();
         }
 
         function stopMusic() {
             musicPlaying = false;
-            if (bassTimer) { clearTimeout(bassTimer); bassTimer = null; }
-            if (leadTimer) { clearTimeout(leadTimer); leadTimer = null; }
+            if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
             if (synth) {
                 if (lastBassNote >= 0) synth.noteOff(MUSIC_CH_BASS, lastBassNote);
                 if (lastLeadNote >= 0) synth.noteOff(MUSIC_CH_LEAD, lastLeadNote);
-                synth.noteOff(MUSIC_CH_PAD, 60);
-                synth.noteOff(MUSIC_CH_PAD, 64);
-                synth.noteOff(MUSIC_CH_PAD, 67);
+                for (const n of padNotes) synth.noteOff(MUSIC_CH_PAD, n);
+                padNotes = [];
                 lastBassNote = -1;
                 lastLeadNote = -1;
             }
