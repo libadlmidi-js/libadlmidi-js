@@ -108,7 +108,7 @@
     "@emnapi/runtime": "1.11.1",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.57.0",
-    "@types/node": "^25.0.3",
+    "@types/node": "^26.0.0",
     "esbuild": "^0.28.0",
     "eslint": "^10.0.3",
     "globals": "^17.4.0",
